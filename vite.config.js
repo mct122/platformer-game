@@ -11,6 +11,9 @@ export default defineConfig({
         name: 'Super Retro Platformer',
         short_name: 'RetroJump',
         description: 'A Mario-style platformer game built with Vanilla JS',
+        start_url: '.',
+        display: 'standalone',
+        orientation: 'landscape',
         theme_color: '#ff0000',
         icons: [
           {

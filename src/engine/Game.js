@@ -86,8 +86,12 @@ export class Game {
             this.audio.play('jump');
         } else if (this.state === STATE.CHAR_SELECT) {
             const rect = this.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            // Scale coords if canvas is scaled by CSS
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
+
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
 
             const gap = 100;
             const startX = this.canvas.width / 2 - gap;
