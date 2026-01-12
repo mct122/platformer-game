@@ -9,7 +9,7 @@ export class Background {
 
     update(dt) {
         // Parallax based on player movement
-        if (this.game.player.velX !== 0) {
+        if (this.game.player && this.game.player.velX !== 0) {
             // Move background opposite to player direction, but slower
             this.x -= (this.game.player.velX * 0.2) * dt;
         }
