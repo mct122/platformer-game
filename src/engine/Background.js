@@ -2,7 +2,7 @@ export class Background {
     constructor(game) {
         this.game = game;
         this.image = new Image();
-        this.image.src = '/assets/sky.png';
+        this.image.src = 'assets/sky.png';
         this.x = 0;
         this.speed = 20; // Slower than player
     }

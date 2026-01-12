@@ -7,7 +7,7 @@ export class Piranha {
         this.height = 48;
 
         this.image = new Image();
-        this.image.src = '/assets/piranha.png';
+        this.image.src = 'assets/piranha.png';
 
         this.timer = 0;
         this.isUp = true;

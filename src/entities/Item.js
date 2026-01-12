@@ -12,7 +12,7 @@ export class Item {
         this.spawnY = y - 32;
 
         this.image = new Image();
-        this.image.src = type === 'mushroom' ? '/assets/mushroom.png' : '/assets/flower.png';
+        this.image.src = type === 'mushroom' ? 'assets/mushroom.png' : 'assets/flower.png';
 
         this.markedForDeletion = false;
     }

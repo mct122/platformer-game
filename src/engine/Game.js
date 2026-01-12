@@ -37,9 +37,9 @@ export class Game {
         this.groundY = this.canvas.height - 64;
 
         this.characters = [
-            { name: 'Mario', src: '/assets/player.png' },
-            { name: 'Luigi', src: '/assets/player_green.png' },
-            { name: 'Peach', src: '/assets/player_pink.png' }
+            { name: 'Mario', src: 'assets/player.png' },
+            { name: 'Luigi', src: 'assets/player_green.png' },
+            { name: 'Peach', src: 'assets/player_pink.png' }
         ];
         this.selectedCharIndex = 0;
 

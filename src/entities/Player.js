@@ -1,5 +1,5 @@
 export class Player {
-    constructor(game, imageSrc = '/assets/player.png') {
+    constructor(game, imageSrc = 'assets/player.png') {
         this.game = game;
         this.width = 32;
         this.height = 32;

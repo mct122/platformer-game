@@ -10,7 +10,7 @@ export class Koopa {
         this.velY = 0;
 
         this.image = new Image();
-        this.image.src = '/assets/koopa.png';
+        this.image.src = 'assets/koopa.png';
 
         this.state = 'walking'; // walking, shell_still, shell_moving
         this.markedForDeletion = false;

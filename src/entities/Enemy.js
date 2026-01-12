@@ -9,7 +9,7 @@ export class Enemy {
         this.velX = this.speed;
 
         this.image = new Image();
-        this.image.src = '/assets/enemy.png';
+        this.image.src = 'assets/enemy.png';
 
         this.markedForDeletion = false;
         this.isDead = false;
