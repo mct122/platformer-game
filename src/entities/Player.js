@@ -137,6 +137,28 @@ export class Player {
             this.isGrounded = true;
         }
 
+        // Block Collisions
+        if (this.game.blocks) {
+            this.game.blocks.forEach(block => {
+                // Simple AABB for "riding"
+                // Check if player is falling onto the block
+                if (this.velY >= 0) {
+                    // Check X overlap
+                    if (this.x + this.width > block.x && this.x < block.x + block.width) {
+                        // Check Y overlap: Player bottom should be slightly above or within block top
+                        const pBottom = this.y + this.height;
+                        // Allow small margin
+                        if (pBottom >= block.y && pBottom <= block.y + 20) { // 20px threshold
+                            // Snap to top
+                            this.y = block.y - this.height;
+                            this.velY = 0;
+                            this.isGrounded = true;
+                        }
+                    }
+                }
+            });
+        }
+
         // Animation Logic
         if (Math.abs(this.velX) > 10) {
             // Running
