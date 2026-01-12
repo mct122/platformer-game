@@ -22,7 +22,7 @@ async function generate() {
                 w: minDim,
                 h: minDim
             });
-            face.resize({ w: 20, h: 20 });
+            face.resize({ w: 28, h: 28 });
 
             // Create sprite sheet
             const sheet = new Jimp({ width: 128, height: 32, color: 0x00000000 });
@@ -83,7 +83,7 @@ async function generate() {
                 sheet.setPixelColor(legColor, offsetX + 23, 23);
 
                 // Composite Face
-                sheet.composite(face, offsetX + 6, 0); // Top centered
+                sheet.composite(face, offsetX + 2, 0); // Top centered (32 - 28) / 2 = 2
             }
 
             await sheet.write(`public/assets/${char.name}.png`);

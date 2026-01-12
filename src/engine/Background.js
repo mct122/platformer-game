@@ -2,7 +2,10 @@ export class Background {
     constructor(game) {
         this.game = game;
         this.image = new Image();
+        this.image.onload = () => { this.loaded = true; };
+        this.image.onerror = () => { console.error(`Failed to load background image: ${this.image.src}`); this.loaded = false; };
         this.image.src = 'assets/sky.png';
+        this.loaded = false;
         this.x = 0;
         this.speed = 20; // Slower than player
     }
@@ -22,7 +25,7 @@ export class Background {
     }
 
     draw(ctx) {
-        if (!this.image.width) return;
+        if (!this.loaded || !this.image.width) return;
 
         // Draw image twice to cover screen
         // Assumes image width is somewhat wide. If not, might need 3+ draws.

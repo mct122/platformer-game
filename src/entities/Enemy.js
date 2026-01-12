@@ -9,7 +9,10 @@ export class Enemy {
         this.velX = this.speed;
 
         this.image = new Image();
+        this.image.onload = () => { this.loaded = true; };
+        this.image.onerror = () => { console.error(`Failed to load image: ${this.image.src}`); this.loaded = false; };
         this.image.src = 'assets/enemy.png';
+        this.loaded = false;
 
         this.markedForDeletion = false;
         this.isDead = false;
@@ -61,6 +64,7 @@ export class Enemy {
     }
 
     draw(ctx) {
+        if (!this.loaded) return;
         if (this.isDead) {
             ctx.globalAlpha = 1 - (this.deathTimer * 2); // Fade out
         }

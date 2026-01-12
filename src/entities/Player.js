@@ -17,7 +17,15 @@ export class Player {
         this.isGrounded = false;
 
         this.image = new Image();
+        this.image.onload = () => {
+            this.loaded = true;
+        };
+        this.image.onerror = () => {
+            console.error(`Failed to load image: ${this.image.src}`);
+            this.loaded = false;
+        };
         this.image.src = imageSrc;
+        this.loaded = false;
 
         // Animation state
         this.frameX = 0;
@@ -60,16 +68,11 @@ export class Player {
             this.game.audio.play('coin'); // shrinking sound?
         } else {
             // Die
-            this.game.state = 3; // Game Over triggers in Game.js handled by Y check usually
+            this.game.state = 3;
             this.velY = -400;
             this.isGrounded = false;
-            // Disable collision to fall through
-            this.y += 10; // Push down to avoid immediate floor catch?
-            // Actually Game.js handles "y > height". 
-            // We need to set a "dead" flag or Game.js will just bounce him? 
-            // Current Game.js checks y > canvas.height. So if we launch him up, he needs to fall down.
-            // We need to disable ground collision if dead.
             this.isDead = true;
+            this.game.audio.play('death');
         }
     }
 
@@ -155,25 +158,36 @@ export class Player {
     }
 
     draw(ctx) {
+        // Prevent drawing broken images
+        if (!this.image.complete || this.image.naturalWidth === 0) return;
+
         // Flip sprite if facing left
         ctx.save();
+        if (!this.loaded) return;
+
         if (!this.facingRight) {
             ctx.translate(this.x + this.width, this.y);
             ctx.scale(-1, 1);
+            if (this.isDead) ctx.rotate(Math.PI); // Upside down dead
             ctx.drawImage(this.image,
                 this.frameX * 32, 0, 32, 32, // Source (assuming 32x32 sprites)
                 0, 0, this.width, this.height // Destination relative to translated
             );
         } else {
-            ctx.drawImage(this.image,
-                this.frameX * 32, 0, 32, 32,
-                this.x, this.y, this.width, this.height
-            );
+            if (this.isDead) { // Manual transform for right facing dead
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+                ctx.rotate(Math.PI);
+                ctx.drawImage(this.image,
+                    this.frameX * 32, 0, 32, 32,
+                    -this.width / 2, -this.height / 2, this.width, this.height
+                );
+            } else {
+                ctx.drawImage(this.image,
+                    this.frameX * 32, 0, 32, 32,
+                    this.x, this.y, this.width, this.height
+                );
+            }
         }
         ctx.restore();
-
-        // Debug Box
-        // ctx.strokeStyle = 'red';
-        // ctx.strokeRect(this.x, this.y, this.width, this.height);
     }
 }

@@ -10,7 +10,10 @@ export class Koopa {
         this.velY = 0;
 
         this.image = new Image();
+        this.image.onload = () => { this.loaded = true; };
+        this.image.onerror = () => { console.error(`Failed to load image: ${this.image.src}`); this.loaded = false; };
         this.image.src = 'assets/koopa.png';
+        this.loaded = false;
 
         this.state = 'walking'; // walking, shell_still, shell_moving
         this.markedForDeletion = false;
@@ -78,6 +81,7 @@ export class Koopa {
     }
 
     draw(ctx) {
+        if (!this.loaded) return;
         // Draw standard or shell sprite
         if (this.state !== 'walking') {
             // Visual cue?

@@ -7,7 +7,10 @@ export class Piranha {
         this.height = 48;
 
         this.image = new Image();
+        this.image.onload = () => { this.loaded = true; };
+        this.image.onerror = () => { console.error(`Failed to load image: ${this.image.src}`); this.loaded = false; };
         this.image.src = 'assets/piranha.png';
+        this.loaded = false;
 
         this.timer = 0;
         this.isUp = true;
@@ -38,6 +41,7 @@ export class Piranha {
     }
 
     draw(ctx) {
+        if (!this.loaded) return;
         if (this.isUp) {
             ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
         } else {

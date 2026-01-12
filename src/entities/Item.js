@@ -12,7 +12,10 @@ export class Item {
         this.spawnY = y - 32;
 
         this.image = new Image();
+        this.image.onload = () => { this.loaded = true; };
+        this.image.onerror = () => { console.error(`Failed to load image: ${this.image.src}`); this.loaded = false; };
         this.image.src = type === 'mushroom' ? 'assets/mushroom.png' : 'assets/flower.png';
+        this.loaded = false;
 
         this.markedForDeletion = false;
     }
@@ -70,6 +73,7 @@ export class Item {
     }
 
     draw(ctx) {
+        if (!this.loaded) return;
         ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
     }
 }

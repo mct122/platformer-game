@@ -138,6 +138,14 @@ export class Audio {
             gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
             osc.start(now);
             osc.stop(now + 0.3);
+        } else if (type === 'death') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.linearRampToValueAtTime(100, now + 0.5); // Descending
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+            osc.start(now);
+            osc.stop(now + 0.5);
         }
     }
 }
