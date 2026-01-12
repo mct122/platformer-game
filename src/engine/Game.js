@@ -2,6 +2,7 @@ import { Input } from './Input.js';
 import { Audio } from './Audio.js';
 import { Player } from '../entities/Player.js';
 import { Enemy } from '../entities/Enemy.js';
+import { Background } from './Background.js';
 
 const STATE = {
     TITLE: 0,
@@ -25,6 +26,7 @@ export class Game {
 
         this.input = new Input();
         this.audio = new Audio();
+        this.background = new Background(this);
         this.state = STATE.TITLE;
 
         this.characters = [
@@ -48,9 +50,13 @@ export class Game {
         });
 
         // Title/Select Click Handling
-        this.canvas.addEventListener('click', (e) => this.handleClick(e));
+        this.canvas.addEventListener('click', (e) => {
+            if (this.audio.ctx.state === 'suspended') this.audio.ctx.resume();
+            this.handleClick(e);
+        });
         // Also touch for mobile
         this.canvas.addEventListener('touchstart', (e) => {
+            if (this.audio.ctx.state === 'suspended') this.audio.ctx.resume();
             // Simple hack to convert touch to click logic
             const touch = e.changedTouches[0];
             this.handleClick({ clientX: touch.clientX, clientY: touch.clientY });
@@ -99,6 +105,7 @@ export class Game {
 
         this.state = STATE.PLAYING;
         this.audio.play('coin');
+        setTimeout(() => this.audio.startBGM(), 500);
 
         this.controlsEl.style.display = 'flex'; // Show controls
         this.topBarEl.style.display = 'flex';
@@ -137,6 +144,7 @@ export class Game {
     }
 
     update(dt) {
+        this.background.update(dt);
         if (this.state === STATE.PLAYING) {
             this.player.update(dt);
             this.enemies.forEach(enemy => enemy.update(dt));
@@ -146,6 +154,7 @@ export class Game {
             if (this.player.y > this.canvas.height) {
                 // Fall off world
                 this.state = STATE.TITLE;
+                this.audio.stopBGM();
                 this.controlsEl.style.display = 'none';
                 this.topBarEl.style.display = 'none'; // Hide top bar too
             }
@@ -155,6 +164,10 @@ export class Game {
     draw() {
         this.ctx.fillStyle = '#222';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        if (this.state === STATE.PLAYING || this.state === STATE.TITLE || this.state === STATE.CHAR_SELECT) {
+            this.background.draw(this.ctx);
+        }
 
         if (this.state === STATE.TITLE) {
             this.drawTitle();
@@ -169,6 +182,11 @@ export class Game {
         this.ctx.save();
         this.ctx.fillStyle = 'white';
         this.ctx.textAlign = 'center';
+
+        // Outline/Shadow for text visibility
+        this.ctx.shadowColor = 'black';
+        this.ctx.shadowBlur = 4;
+
         this.ctx.font = '40px monospace';
         this.ctx.fillText('SUPER RETRO PLATFORMER', this.canvas.width / 2, this.canvas.height / 2 - 50);
 
@@ -183,17 +201,15 @@ export class Game {
         this.ctx.save();
         this.ctx.fillStyle = 'white';
         this.ctx.textAlign = 'center';
+        this.ctx.shadowColor = 'black';
+        this.ctx.shadowBlur = 4;
+
         this.ctx.font = '30px monospace';
         this.ctx.fillText('キャラクターを選択', this.canvas.width / 2, 100);
 
         const gap = 100;
         const startX = this.canvas.width / 2 - gap;
         const centerY = this.canvas.height / 2;
-
-        // Draw 3 character placeholders or sprites if loaded
-        // We'll create temp images for them if they aren't preloaded, but Player needs an instance/image to draw.
-        // For now, simpler: just draw text or colored boxes if images aren't handy in this context, 
-        // but we have paths.
 
         const drawChar = (idx, x, color, name) => {
             this.ctx.fillStyle = color;
@@ -213,10 +229,6 @@ export class Game {
     }
 
     drawGame() {
-        this.ctx.fillStyle = '#5c94fc';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // Draw Ground
         this.ctx.fillStyle = '#834c32';
         this.ctx.fillRect(0, 300 + 32, this.canvas.width, this.canvas.height - 300);
 

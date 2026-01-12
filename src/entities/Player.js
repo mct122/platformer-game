@@ -8,7 +8,9 @@ export class Player {
 
         this.velX = 0;
         this.velY = 0;
-        this.speed = 200; // pixels per second
+        this.maxSpeed = 250;
+        this.acceleration = 800;
+        this.friction = 600;
         this.jumpForce = -600;
         this.gravity = 1500;
 
@@ -20,7 +22,7 @@ export class Player {
         // Animation state
         this.frameX = 0;
         this.frameY = 0;
-        this.maxFrame = 3; // Assuming generated spritesheet has 4 frames
+        this.maxFrame = 3;
         this.fps = 10;
         this.frameTimer = 0;
         this.frameInterval = 1000 / this.fps;
@@ -29,22 +31,41 @@ export class Player {
     }
 
     update(dt) {
-        // Movement
+        // Movement with Inertia
         if (this.game.input.state.left) {
-            this.velX = -this.speed;
+            if (this.velX > 0) this.velX -= this.friction * 2 * dt; // Quick turn
+            this.velX -= this.acceleration * dt;
             this.facingRight = false;
         } else if (this.game.input.state.right) {
-            this.velX = this.speed;
+            if (this.velX < 0) this.velX += this.friction * 2 * dt; // Quick turn
+            this.velX += this.acceleration * dt;
             this.facingRight = true;
         } else {
-            this.velX = 0;
+            // Friction
+            if (Math.abs(this.velX) > 10) {
+                this.velX -= Math.sign(this.velX) * this.friction * dt;
+            } else {
+                this.velX = 0;
+            }
+        }
+
+        // Clamp Speed
+        if (Math.abs(this.velX) > this.maxSpeed) {
+            this.velX = Math.sign(this.velX) * this.maxSpeed;
         }
 
         // Jump
-        if (this.game.input.state.jump && this.isGrounded) {
-            this.velY = this.jumpForce;
-            this.isGrounded = false;
-            this.game.audio.play('jump');
+        if (this.game.input.state.jump) {
+            if (this.isGrounded) {
+                this.velY = this.jumpForce;
+                this.isGrounded = false;
+                this.game.audio.play('jump');
+            }
+        } else {
+            // Variable Jump Height: cut velocity if released early
+            if (this.velY < -100 && !this.isGrounded) {
+                this.velY *= 0.5; // Dampen upward velocity
+            }
         }
 
         // Apply Gravity
@@ -62,7 +83,7 @@ export class Player {
         }
 
         // Animation Logic
-        if (Math.abs(this.velX) > 0) {
+        if (Math.abs(this.velX) > 10) {
             // Running
             this.frameTimer += dt * 1000;
             if (this.frameTimer > this.frameInterval) {

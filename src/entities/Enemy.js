@@ -12,9 +12,19 @@ export class Enemy {
         this.image.src = '/assets/enemy.png';
 
         this.markedForDeletion = false;
+        this.isDead = false;
+        this.deathTimer = 0;
     }
 
     update(dt) {
+        if (this.isDead) {
+            this.deathTimer += dt;
+            if (this.deathTimer > 0.5) {
+                this.markedForDeletion = true;
+            }
+            return;
+        }
+
         this.x += this.velX * dt;
 
         // Simple patrol
@@ -23,13 +33,12 @@ export class Enemy {
 
         // Checks collision with player
         if (this.checkCollision(this.game.player)) {
-            // Simple collision logic: if player is above, enemy dies. Else player dies.
             if (this.game.player.velY > 0 && this.game.player.y < this.y) {
-                this.markedForDeletion = true;
+                // Stomp Success
+                this.squash();
                 this.game.player.velY = -300; // Bounce
-                this.game.audio.play('coin'); // Sound effect
+                this.game.audio.play('coin');
             } else {
-                // Player hit (reset pos for now)
                 this.game.player.x = 100;
                 this.game.player.y = 100;
             }
@@ -45,7 +54,17 @@ export class Enemy {
         );
     }
 
+    squash() {
+        this.isDead = true;
+        this.height = 16; // Squash visual
+        this.y += 16; // Adjust position to stay on floor
+    }
+
     draw(ctx) {
+        if (this.isDead) {
+            ctx.globalAlpha = 1 - (this.deathTimer * 2); // Fade out
+        }
         ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+        ctx.globalAlpha = 1.0;
     }
 }
