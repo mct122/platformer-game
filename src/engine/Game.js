@@ -169,16 +169,28 @@ export class Game {
     loop(timestamp) {
         if (!this.isRunning) return;
 
-        const deltaTime = timestamp - this.lastTime;
-        this.lastTime = timestamp;
-        this.accumulatedTime += deltaTime;
+        try {
+            const deltaTime = timestamp - this.lastTime;
+            this.lastTime = timestamp;
+            this.accumulatedTime += deltaTime;
 
-        while (this.accumulatedTime >= this.timeStep) {
-            this.update(this.timeStep / 1000);
-            this.accumulatedTime -= this.timeStep;
+            while (this.accumulatedTime >= this.timeStep) {
+                this.update(this.timeStep / 1000);
+                this.accumulatedTime -= this.timeStep;
+            }
+
+            this.draw();
+        } catch (e) {
+            console.error(e);
+            this.ctx.resetTransform(); // Reset camera
+            this.ctx.fillStyle = 'red';
+            this.ctx.font = '20px sans-serif';
+            this.ctx.fillText('Error: ' + e.message, 10, 50);
+            this.ctx.fillText(e.stack ? e.stack.slice(0, 100) : '', 10, 80);
+            this.isRunning = false; // Stop loop
+            return;
         }
 
-        this.draw();
         requestAnimationFrame(this.loop.bind(this));
     }
 
