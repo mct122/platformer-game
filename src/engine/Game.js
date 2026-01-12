@@ -2,7 +2,11 @@ import { Input } from './Input.js';
 import { Audio } from './Audio.js';
 import { Player } from '../entities/Player.js';
 import { Enemy } from '../entities/Enemy.js';
+import { Koopa } from '../entities/Koopa.js';
+import { Piranha } from '../entities/Piranha.js';
+import { Block } from '../entities/Block.js';
 import { Background } from './Background.js';
+import { Camera } from './Camera.js';
 
 const STATE = {
     TITLE: 0,
@@ -19,15 +23,18 @@ export class Game {
 
         this.uiLayer = document.getElementById('ui-layer');
         this.controlsEl = document.querySelector('.controls');
-        this.topBarEl = document.querySelector('.top-bar'); // Score and Sound
+        this.topBarEl = document.querySelector('.top-bar');
 
         this.resize();
         window.addEventListener('resize', () => this.resize());
 
         this.input = new Input();
         this.audio = new Audio();
+        this.camera = new Camera(this.canvas.width, this.canvas.height);
         this.background = new Background(this);
         this.state = STATE.TITLE;
+
+        this.groundY = this.canvas.height - 64;
 
         this.characters = [
             { name: 'Mario', src: '/assets/player.png' },
@@ -56,11 +63,11 @@ export class Game {
         });
         // Also touch for mobile
         this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
             if (this.audio.ctx.state === 'suspended') this.audio.ctx.resume();
-            // Simple hack to convert touch to click logic
             const touch = e.changedTouches[0];
             this.handleClick({ clientX: touch.clientX, clientY: touch.clientY });
-        });
+        }, { passive: false });
 
         this.score = 0;
         this.scoreEl = document.getElementById('score');
@@ -82,7 +89,6 @@ export class Game {
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
 
-            // Simple hit detection for 3 characters drawn in center
             const gap = 100;
             const startX = this.canvas.width / 2 - gap;
             const centerY = this.canvas.height / 2;
@@ -96,12 +102,16 @@ export class Game {
     }
 
     startGame(charIndex) {
+        this.groundY = this.canvas.height - 64;
         this.selectedCharIndex = charIndex;
         this.player = new Player(this, this.characters[charIndex].src);
+
         this.enemies = [];
-        this.enemies.push(new Enemy(this, 500, 300));
-        this.enemies.push(new Enemy(this, 1200, 300));
-        this.enemies.push(new Enemy(this, 1600, 300));
+        this.items = [];
+        this.blocks = [];
+
+        // Level 1-1 Layout Construction
+        this.buildLevel1_1();
 
         this.state = STATE.PLAYING;
         this.audio.play('coin');
@@ -111,19 +121,44 @@ export class Game {
         this.topBarEl.style.display = 'flex';
     }
 
+    buildLevel1_1() {
+        // 1-1 Style: 
+        // Start -> Goomba -> Block -> Pipes -> Pit -> Goal
+
+        // Blocks
+        this.blocks.push(new Block(this, 500, this.groundY - 128, 'mushroom'));
+        this.blocks.push(new Block(this, 700, this.groundY - 128, 'coin'));
+        this.blocks.push(new Block(this, 732, this.groundY - 128, 'coin'));
+        this.blocks.push(new Block(this, 764, this.groundY - 128, 'coin'));
+        this.blocks.push(new Block(this, 800, this.groundY - 200, 'flower')); // High block
+
+        // Enemies
+        this.enemies.push(new Enemy(this, 600, this.groundY - 32));
+        this.enemies.push(new Enemy(this, 1000, this.groundY - 32));
+        this.enemies.push(new Koopa(this, 1200, this.groundY));
+        this.enemies.push(new Enemy(this, 1300, this.groundY - 32));
+        this.enemies.push(new Piranha(this, 1800, this.groundY - 48)); // Pipe plant (Pipe visual missing but plant is there)
+        this.enemies.push(new Koopa(this, 2200, this.groundY));
+
+        // Goal (Simulated by simple x check for now)
+        this.goalX = 3000;
+    }
+
     resize() {
         this.canvas.width = window.innerWidth;
         this.canvas.height = window.innerHeight;
         this.ctx.imageSmoothingEnabled = false;
+        this.groundY = this.canvas.height - 64;
+        if (this.camera) {
+            this.camera.width = this.canvas.width;
+            this.camera.height = this.canvas.height;
+        }
     }
 
     start() {
         this.isRunning = true;
         this.lastTime = performance.now();
-
-        // Hide controls initially
         this.controlsEl.style.display = 'none';
-
         requestAnimationFrame(this.loop.bind(this));
     }
 
@@ -146,17 +181,36 @@ export class Game {
     update(dt) {
         this.background.update(dt);
         if (this.state === STATE.PLAYING) {
-            this.player.update(dt);
-            this.enemies.forEach(enemy => enemy.update(dt));
-            this.enemies = this.enemies.filter(enemy => !enemy.markedForDeletion);
+            const p = this.player;
+            p.update(dt);
+
+            this.blocks.forEach(b => b.update(dt));
+            this.items.forEach(i => i.update(dt));
+            this.enemies.forEach(e => e.update(dt));
+
+            // Cleanup
+            this.enemies = this.enemies.filter(e => !e.markedForDeletion);
+            this.items = this.items.filter(i => !i.markedForDeletion);
+
+            this.camera.update(p, 4000); // 4000 map width
+            this.background.x = -(this.camera.x * 0.2);
+
+            // Goal Check
+            if (p.x > this.goalX) {
+                // Win!
+                this.audio.play('coin'); // Win sound placeholder
+                this.state = STATE.TITLE; // Loop back
+                this.audio.stopBGM();
+                this.controlsEl.style.display = 'none'; // Show controls
+                this.topBarEl.style.display = 'none';
+            }
 
             // Simple Game Over reset
-            if (this.player.y > this.canvas.height) {
-                // Fall off world
+            if (p.isDead || p.y > this.canvas.height) {
                 this.state = STATE.TITLE;
                 this.audio.stopBGM();
-                this.controlsEl.style.display = 'none';
-                this.topBarEl.style.display = 'none'; // Hide top bar too
+                this.controlsEl.style.display = 'none'; // Show controls
+                this.topBarEl.style.display = 'none';
             }
         }
     }
@@ -182,14 +236,10 @@ export class Game {
         this.ctx.save();
         this.ctx.fillStyle = 'white';
         this.ctx.textAlign = 'center';
-
-        // Outline/Shadow for text visibility
         this.ctx.shadowColor = 'black';
         this.ctx.shadowBlur = 4;
-
         this.ctx.font = '40px monospace';
         this.ctx.fillText('SUPER RETRO PLATFORMER', this.canvas.width / 2, this.canvas.height / 2 - 50);
-
         this.ctx.font = '20px monospace';
         if (Math.floor(Date.now() / 500) % 2 === 0) {
             this.ctx.fillText('画面をタップしてスタート', this.canvas.width / 2, this.canvas.height / 2 + 50);
@@ -203,7 +253,6 @@ export class Game {
         this.ctx.textAlign = 'center';
         this.ctx.shadowColor = 'black';
         this.ctx.shadowBlur = 4;
-
         this.ctx.font = '30px monospace';
         this.ctx.fillText('キャラクターを選択', this.canvas.width / 2, 100);
 
@@ -229,11 +278,24 @@ export class Game {
     }
 
     drawGame() {
-        this.ctx.fillStyle = '#834c32';
-        this.ctx.fillRect(0, 300 + 32, this.canvas.width, this.canvas.height - 300);
+        this.ctx.save();
+        this.ctx.translate(-this.camera.x, 0);
 
-        // Draw Entities
+        // Draw Ground
+        this.ctx.fillStyle = '#834c32';
+        this.ctx.fillRect(0, this.groundY, 4000, this.canvas.height - this.groundY);
+
+        // Draw Flagpole (Goal) - Simple stick
+        this.ctx.fillStyle = '#eee';
+        this.ctx.fillRect(this.goalX, this.groundY - 300, 10, 300);
+        this.ctx.fillStyle = 'red';
+        this.ctx.fillRect(this.goalX + 10, this.groundY - 280, 50, 30); // Flag
+
+        this.blocks.forEach(b => b.draw(this.ctx));
+        this.items.forEach(i => i.draw(this.ctx));
+        this.enemies.forEach(e => e.draw(this.ctx));
         this.player.draw(this.ctx);
-        this.enemies.forEach(enemy => enemy.draw(this.ctx));
+
+        this.ctx.restore();
     }
 }

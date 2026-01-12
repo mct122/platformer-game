@@ -28,9 +28,61 @@ export class Player {
         this.frameInterval = 1000 / this.fps;
 
         this.facingRight = true;
+
+        this.powerState = 'small'; // small, big, fire
+        this.invulnerable = false;
+        this.invulnerableTimer = 0;
+    }
+
+    grow() {
+        if (this.powerState === 'small') {
+            this.powerState = 'big';
+            this.y -= 16; // Grow up
+            this.height = 48; // Taller
+            // Ideally change sprite or scale?
+            // For now, let's just scale Y drawing or keep bounding box larger
+        }
+    }
+
+    powerUpFire() {
+        this.powerState = 'fire';
+        this.grow(); // Ensure big size
+    }
+
+    takeDamage() {
+        if (this.invulnerable) return;
+
+        if (this.powerState === 'fire' || this.powerState === 'big') {
+            this.powerState = 'small';
+            this.height = 32;
+            this.invulnerable = true;
+            this.invulnerableTimer = 2; // 2 seconds
+            this.game.audio.play('coin'); // shrinking sound?
+        } else {
+            // Die
+            this.game.state = 3; // Game Over triggers in Game.js handled by Y check usually
+            this.velY = -400;
+            this.isGrounded = false;
+            // Disable collision to fall through
+            this.y += 10; // Push down to avoid immediate floor catch?
+            // Actually Game.js handles "y > height". 
+            // We need to set a "dead" flag or Game.js will just bounce him? 
+            // Current Game.js checks y > canvas.height. So if we launch him up, he needs to fall down.
+            // We need to disable ground collision if dead.
+            this.isDead = true;
+        }
     }
 
     update(dt) {
+        if (this.invulnerable) {
+            this.invulnerableTimer -= dt;
+            if (this.invulnerableTimer <= 0) {
+                this.invulnerable = false;
+            }
+        }
+
+        if (this.isDead) return; // Disable movement
+
         // Movement with Inertia
         if (this.game.input.state.left) {
             if (this.velX > 0) this.velX -= this.friction * 2 * dt; // Quick turn
@@ -75,9 +127,9 @@ export class Player {
         this.x += this.velX * dt;
         this.y += this.velY * dt;
 
-        // Simple Floor Collision (for now, y > 300 is floor)
-        if (this.y > 300) {
-            this.y = 300;
+        // Simple Floor Collision
+        if (this.y > this.game.groundY - this.height) {
+            this.y = this.game.groundY - this.height;
             this.velY = 0;
             this.isGrounded = true;
         }
