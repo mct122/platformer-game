@@ -3,8 +3,8 @@ export class Enemy {
         this.game = game;
         this.x = x;
         this.y = y;
-        this.width = 32;
-        this.height = 32;
+        this.width = 40;
+        this.height = 40;
         this.speed = 50;
         this.velX = this.speed;
 
@@ -68,7 +68,18 @@ export class Enemy {
         if (this.isDead) {
             ctx.globalAlpha = 1 - (this.deathTimer * 2); // Fade out
         }
-        ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        // Circular Clip
+        ctx.beginPath();
+        ctx.arc(this.width / 2, this.height / 2, this.width / 2, 0, Math.PI * 2);
+        ctx.clip();
+
+        ctx.drawImage(this.image, 0, 0, this.width, this.height);
+        ctx.restore();
+
         ctx.globalAlpha = 1.0;
     }
 }

@@ -2,9 +2,9 @@ export class Player {
     constructor(game, charConfig) {
         this.game = game;
         this.charConfig = charConfig;
-        // Unified size 40x40
-        this.width = 40;
-        this.height = 40;
+        // Unified size slightly larger
+        this.width = 50;
+        this.height = 50;
         this.x = 100;
         this.y = 100;
 
@@ -48,7 +48,13 @@ export class Player {
     updateImageSource() {
         if (!this.charConfig) return;
         const type = this.powerState === 'big' ? 'super' : 'normal';
-        this.image.src = `${this.charConfig.path}/${type}.${this.charConfig.ext}`;
+        // Use new config structure
+        if (this.charConfig.assets) {
+            this.image.src = `${this.charConfig.folder}/${this.charConfig.assets[type]}`;
+        } else {
+            // Fallback for old config if needed (shouldn't happen with new Game.js)
+            this.image.src = `${this.charConfig.path}/${type}.${this.charConfig.ext}`;
+        }
     }
 
     grow() {
@@ -210,24 +216,39 @@ export class Player {
         if (!this.facingRight) {
             ctx.translate(this.x + this.width, this.y);
             ctx.scale(-1, 1);
-            if (this.isDead) ctx.rotate(Math.PI); // Upside down dead
-            ctx.drawImage(this.image,
-                this.frameX * 32, 0, 32, 32, // Source 
-                0, 0, this.width, this.height // Destination
-            );
+            if (this.isDead) ctx.rotate(Math.PI);
+
+            // Circular Clip for "Cut out" look
+            ctx.beginPath();
+            // Center of the square
+            ctx.arc(this.width / 2, this.height / 2, this.width / 2, 0, Math.PI * 2);
+            ctx.clip();
+
+            ctx.drawImage(this.image, 0, 0, this.width, this.height);
+
         } else {
-            if (this.isDead) { // Manual transform for right facing dead
+            if (this.isDead) {
                 ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
                 ctx.rotate(Math.PI);
-                ctx.drawImage(this.image,
-                    this.frameX * 32, 0, 32, 32,
-                    -this.width / 2, -this.height / 2, this.width, this.height
-                );
+
+                // Circular Clip
+                ctx.beginPath();
+                ctx.arc(0, 0, this.width / 2, 0, Math.PI * 2);
+                ctx.clip();
+
+                ctx.drawImage(this.image, -this.width / 2, -this.height / 2, this.width, this.height);
             } else {
-                ctx.drawImage(this.image,
-                    this.frameX * 32, 0, 32, 32,
-                    this.x, this.y, this.width, this.height
-                );
+                // Circular Clip relative to x, y
+                // Need to save/restore or just path it
+                // Since not transforming, it's easier to verify path
+                // But typically easier to translate to draw position to reuse logical 0,0
+                ctx.save(); // Nested save for clip
+                ctx.translate(this.x, this.y);
+                ctx.beginPath();
+                ctx.arc(this.width / 2, this.height / 2, this.width / 2, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.drawImage(this.image, 0, 0, this.width, this.height);
+                ctx.restore();
             }
         }
         ctx.restore();

@@ -36,10 +36,25 @@ export class Game {
 
         this.groundY = this.canvas.height - 64;
 
+        // Detect base URL from Vite or fallback
+        const base = import.meta.env ? import.meta.env.BASE_URL : '/platformer-game/';
+
         this.characters = [
-            { name: 'Donko', path: 'chara/donko', ext: 'jpeg' },
-            { name: 'Poon', path: 'chara/poon', ext: 'jpg' },
-            { name: 'Emanuel', path: 'chara/ema', ext: 'jpg' }
+            {
+                name: 'Donko',
+                folder: `${base}chara/donko`,
+                assets: { normal: 'normal.jpeg', super: 'super.jpg' }
+            },
+            {
+                name: 'Poon',
+                folder: `${base}chara/poon`,
+                assets: { normal: 'normal.jpg', super: 'super.jpg' }
+            },
+            {
+                name: 'Emanuel',
+                folder: `${base}chara/ema`,
+                assets: { normal: 'normal.jpg', super: 'super.jpg' }
+            }
         ];
         this.selectedCharIndex = 0;
 
@@ -277,19 +292,54 @@ export class Game {
         const startX = this.canvas.width / 2 - gap;
         const centerY = this.canvas.height / 2;
 
-        const drawChar = (idx, x, color, name) => {
-            this.ctx.fillStyle = color;
+        const drawChar = (idx, x, name, config) => {
+            // Draw circle background
+            this.ctx.fillStyle = 'rgba(255,255,255,0.2)';
             this.ctx.beginPath();
             this.ctx.arc(x, centerY, 40, 0, Math.PI * 2);
             this.ctx.fill();
+
+            // Load and draw image if not cached, or just quick load helper
+            // For simplicity, create a temp image setup if not existing
+            if (!this.charImages) this.charImages = {};
+            if (!this.charImages) this.charImages = {};
+            if (!this.charImages[idx]) {
+                const img = new Image();
+                img.src = `${config.folder}/${config.assets.normal}`;
+                this.charImages[idx] = img;
+            }
+
+            const img = this.charImages[idx];
+            if (img.complete && img.naturalWidth > 0) {
+                this.ctx.save();
+                this.ctx.beginPath();
+                this.ctx.arc(x, centerY, 38, 0, Math.PI * 2);
+                this.ctx.clip();
+                // Draw centered and scaled
+                // Source is likely large (photo), so draw cover
+                // Assume square-ish or just center crop
+                // Draw entire image into circle area roughly
+                this.ctx.drawImage(img, x - 40, centerY - 40, 80, 80);
+                this.ctx.restore();
+            } else {
+                // Fallback text
+                this.ctx.fillStyle = 'white';
+                this.ctx.fillText('...', x, centerY);
+            }
+
             this.ctx.fillStyle = 'white';
             this.ctx.font = '16px monospace';
             this.ctx.fillText(name, x, centerY + 60);
         };
 
-        drawChar(0, startX, 'red', 'Donko');
-        drawChar(1, this.canvas.width / 2, 'green', 'Poon');
-        drawChar(2, startX + gap * 2, 'pink', 'Emanuel');
+        this.characters.forEach((char, idx) => {
+            let xPos;
+            if (idx === 0) xPos = startX;
+            else if (idx === 1) xPos = this.canvas.width / 2;
+            else xPos = startX + gap * 2;
+
+            drawChar(idx, xPos, char.name, char);
+        });
 
         this.ctx.restore();
     }

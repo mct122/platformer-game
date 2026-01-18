@@ -3,8 +3,8 @@ export class Koopa {
         this.game = game;
         this.x = x;
         this.y = y;
-        this.width = 32;
-        this.height = 48; // Taller than goomba
+        this.width = 40;
+        this.height = 55; // Taller than goomba, slightly larger
         this.speed = 30; // Slower
         this.velX = -this.speed;
         this.velY = 0;
@@ -86,10 +86,20 @@ export class Koopa {
 
     draw(ctx) {
         if (!this.loaded) return;
-        // Draw standard or shell sprite
-        if (this.state !== 'walking') {
-            // Visual cue?
-        }
-        ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        // Circular Clip for "Cut out" look
+        ctx.beginPath();
+        // Adjust center if height != width (Koopa is 48 high)
+        // Center vertically in the height
+        const radius = Math.min(this.width, this.height) / 2;
+        ctx.arc(this.width / 2, this.height / 2, radius, 0, Math.PI * 2);
+        ctx.clip();
+
+
+        ctx.drawImage(this.image, 0, 0, this.width, this.height);
+        ctx.restore();
     }
 }
