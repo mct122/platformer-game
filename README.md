@@ -1,62 +1,44 @@
 # Super Retro Platformer
 
-A Mario-style platformer game built with Vanilla JS, Vite, and PWA capabilities.
-Playable offline on mobile devices!
+このプロジェクトは、レトロな雰囲気のプラットフォーマーゲームです。
+パソコンとスマートフォンの両方で遊ぶことができます。
 
-## 🎮 How to Play on Mobile (Smartphone)
+## 遊び方
 
-This game is a Progressive Web App (PWA). You can install it on your phone to play offline and in full screen.
+このゲームはブラウザで動作します。以下のURLにアクセスしてプレイしてください（ローカル開発環境の場合）。
+`http://localhost:5173`
 
-**Public URL**: `https://mct122.github.io/platformer-game/`  
-*(Note: Please ensure GitHub Pages is enabled in your repository settings)*
+### 操作方法
 
-### 📱 Installation Steps
+#### PC（キーボード）
+- **移動**: 矢印キー (`←` / `→`) または `A` / `D` キー
+- **ジャンプ**: 上矢印キー (`↑`) または `Space` キー
 
-**iPhone / iPad (iOS - Safari):**
-1. Open the game URL in **Safari**.
-2. Tap the **Share** button (rectangle with arrow pointing up) at the bottom.
-3. Scroll down and tap **"Add to Home Screen"**.
-4. Tap "Add".
-5. Launch the game from the new icon on your home screen!
+#### スマートフォン（タッチ操作）
+- **移動**: 左下の `←` `→` ボタン
+- **ジャンプ**: 右下の `Jump` ボタン
+- **音声**: 右上のスピーカーアイコンでON/OFF切り替え
 
-**Android (Chrome):**
-1. Open the game URL in **Chrome**.
-2. Tap the **Menu** button (3 dots) at the top right.
-3. Tap **"Install App"** or **"Add to Home Screen"**.
-4. Confirm installation.
-5. Launch the game from the icon on your home screen!
+## 開発環境のセットアップ
 
-### 🕹️ Controls
-- **Touch**: Use the on-screen buttons to Move and Jump.
-- **Keyboard**: Arrow keys to Move, Space/Up to Jump.
+Node.jsがインストールされている必要があります。
 
----
+1. **依存関係のインストール**
+   ```bash
+   npm install
+   ```
 
-## 🛠️ Development
+2. **開発サーバーの起動**
+   ```bash
+   npm run dev
+   ```
 
-### Prerequisites
-- Node.js installed
+## 技術スタック
 
-### Setup
-```bash
-# Install dependencies
-npm install
-```
+- Vite
+- Vanilla JavaScript (Canvas API)
+- PWA対応
 
-### Run Locally
-```bash
-# Start dev server
-npm run dev
+## ライセンス
 
-# Network play (LAN)
-npm run dev -- --host
-```
-
-### Build & Deploy
-This project is configured for GitHub Pages (`base: '/platformer-game/'`).
-
-1. Push your changes to GitHub.
-2. Go to Repository **Settings** -> **Pages**.
-3. Set **Source** to `GitHub Actions` or `Deploy from Branch` (usually `gh-pages` branch if you run a build script, or main if using actions).
-
-Enjoy!
+MIT

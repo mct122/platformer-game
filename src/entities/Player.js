@@ -180,8 +180,7 @@ export class Player {
     }
 
     draw(ctx) {
-        // Prevent drawing broken images
-        if (!this.image.complete || this.image.naturalWidth === 0) return;
+        if (!this.loaded || !this.image.complete || this.image.naturalWidth === 0) return;
 
         // Flip sprite if facing left
         ctx.save();
