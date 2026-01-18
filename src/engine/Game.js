@@ -37,9 +37,9 @@ export class Game {
         this.groundY = this.canvas.height - 64;
 
         this.characters = [
-            { name: 'Mario', src: 'assets/custom_mario.png' },
-            { name: 'Luigi', src: 'assets/custom_luigi.png' },
-            { name: 'Peach', src: 'assets/custom_peach.png' }
+            { name: 'Donko', path: 'chara/donko', ext: 'jpeg' },
+            { name: 'Poon', path: 'chara/poon', ext: 'jpg' },
+            { name: 'Emanuel', path: 'chara/ema', ext: 'jpg' }
         ];
         this.selectedCharIndex = 0;
 
@@ -108,7 +108,8 @@ export class Game {
     startGame(charIndex) {
         this.groundY = this.canvas.height - 64;
         this.selectedCharIndex = charIndex;
-        this.player = new Player(this, this.characters[charIndex].src);
+        // Pass the whole character config to Player
+        this.player = new Player(this, this.characters[charIndex]);
 
         this.enemies = [];
         this.items = [];
@@ -286,9 +287,9 @@ export class Game {
             this.ctx.fillText(name, x, centerY + 60);
         };
 
-        drawChar(0, startX, 'red', 'マリオ');
-        drawChar(1, this.canvas.width / 2, 'green', 'ルイージ');
-        drawChar(2, startX + gap * 2, 'pink', 'ピーチ');
+        drawChar(0, startX, 'red', 'Donko');
+        drawChar(1, this.canvas.width / 2, 'green', 'Poon');
+        drawChar(2, startX + gap * 2, 'pink', 'Emanuel');
 
         this.ctx.restore();
     }

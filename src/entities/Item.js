@@ -31,33 +31,23 @@ export class Item {
             return;
         }
 
-        // Flower is stationary? No, usually static but let's make it bounce or just sit?
-        // Mushroom moves
-        if (this.type === 'mushroom') {
-            this.velY += 1500 * dt;
-            this.x += this.velX * dt;
+        // Apply normal gravity and movement
+        this.velY += 1500 * dt;
+        this.x += this.velX * dt;
 
-            // Ground
-            if (this.y > this.game.groundY - this.height) {
-                this.y = this.game.groundY - this.height;
-                this.velY = 0;
-            }
-
-            // Wall bounce (simple bounds)
-            if (this.x < 0 || this.x > 20000) this.velX *= -1;
-        } else {
-            // Flower logic (static)
-            this.velY += 1500 * dt;
-            if (this.y > this.game.groundY - this.height) {
-                this.y = this.game.groundY - this.height;
-                this.velY = 0;
-            }
+        // Ground Collision
+        if (this.y > this.game.groundY - this.height) {
+            this.y = this.game.groundY - this.height;
+            this.velY = 0;
         }
+
+        // Wall/Bounds bounce
+        if (this.x < 0 || this.x > 20000) this.velX *= -1;
 
         // Collect
         if (this.checkCollision(this.game.player)) {
             if (this.type === 'mushroom') this.game.player.grow();
-            if (this.type === 'flower') this.game.player.powerUpFire();
+            // Removed flower logic
             this.markedForDeletion = true;
             this.game.audio.play('coin'); // Should be powerup sound
         }

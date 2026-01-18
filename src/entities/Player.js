@@ -1,8 +1,10 @@
 export class Player {
-    constructor(game, imageSrc = 'assets/player.png') {
+    constructor(game, charConfig) {
         this.game = game;
-        this.width = 32;
-        this.height = 32;
+        this.charConfig = charConfig;
+        // Unified size 40x40
+        this.width = 40;
+        this.height = 40;
         this.x = 100;
         this.y = 100;
 
@@ -24,7 +26,8 @@ export class Player {
             console.error(`Failed to load image: ${this.image.src}`);
             this.loaded = false;
         };
-        this.image.src = imageSrc;
+        // Start normal
+        this.updateImageSource();
         this.loaded = false;
 
         // Animation state
@@ -37,43 +40,52 @@ export class Player {
 
         this.facingRight = true;
 
-        this.powerState = 'small'; // small, big, fire
+        this.powerState = 'small'; // small (normal), big (super) -- Fire removed
         this.invulnerable = false;
         this.invulnerableTimer = 0;
+    }
+
+    updateImageSource() {
+        if (!this.charConfig) return;
+        const type = this.powerState === 'big' ? 'super' : 'normal';
+        this.image.src = `${this.charConfig.path}/${type}.${this.charConfig.ext}`;
     }
 
     grow() {
         if (this.powerState === 'small') {
             this.powerState = 'big';
-            this.y -= 16; // Grow up
-            this.height = 48; // Taller
-            // Ideally change sprite or scale?
-            // For now, let's just scale Y drawing or keep bounding box larger
+            this.updateImageSource();
+            // Size increase handled by generic setting, but maybe slightly larger visual?
+            // User requested unified size, so hitbox stays logic, visuals update.
+            // Let's keep hitbox consistent 40x40 but maybe big is just "super" image.
         }
     }
 
     powerUpFire() {
-        this.powerState = 'fire';
-        this.grow(); // Ensure big size
+        // Removed as requested, just grow
+        this.grow();
     }
 
     takeDamage() {
-        if (this.invulnerable) return;
+        if (this.invulnerable || this.isDead) return;
 
-        if (this.powerState === 'fire' || this.powerState === 'big') {
+        if (this.powerState === 'big') {
             this.powerState = 'small';
-            this.height = 32;
+            this.updateImageSource();
             this.invulnerable = true;
-            this.invulnerableTimer = 2; // 2 seconds
-            this.game.audio.play('coin'); // shrinking sound?
+            this.invulnerableTimer = 2;
+            this.game.audio.play('coin'); // shrink sound placeholder
         } else {
             // Die
-            this.game.state = 3;
-            this.velY = -400;
-            this.isGrounded = false;
-            this.isDead = true;
-            this.game.audio.play('death');
+            this.die();
         }
+    }
+
+    die() {
+        this.isDead = true;
+        this.game.audio.play('death');
+        this.velY = -500; // Hop up
+        // Disable collision for player so they fall through floor
     }
 
     update(dt) {
@@ -84,7 +96,16 @@ export class Player {
             }
         }
 
-        if (this.isDead) return; // Disable movement
+        if (this.isDead) {
+            // Death animation: Apply gravity, move Y, ignore input/collision except falling off screen
+            this.velY += this.gravity * dt;
+            this.y += this.velY * dt;
+            if (this.y > this.game.canvas.height + 100) {
+                // Trigger Game Over state interaction
+                this.game.state = 3; // GAME_OVER
+            }
+            return;
+        }
 
         // Movement with Inertia
         if (this.game.input.state.left) {
@@ -191,8 +212,8 @@ export class Player {
             ctx.scale(-1, 1);
             if (this.isDead) ctx.rotate(Math.PI); // Upside down dead
             ctx.drawImage(this.image,
-                this.frameX * 32, 0, 32, 32, // Source (assuming 32x32 sprites)
-                0, 0, this.width, this.height // Destination relative to translated
+                this.frameX * 32, 0, 32, 32, // Source 
+                0, 0, this.width, this.height // Destination
             );
         } else {
             if (this.isDead) { // Manual transform for right facing dead

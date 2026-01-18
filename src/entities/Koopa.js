@@ -39,32 +39,36 @@ export class Koopa {
         // Check Collision with Player
         if (this.checkCollision(this.game.player)) {
             const player = this.game.player;
-            if (player.velY > 0 && player.y < this.y + 10) {
-                // Stomp
-                player.velY = -300;
+            // Stomp Logic: Player falling and above enemy
+            if (player.velY > 0 && player.y + player.height < this.y + this.height * 0.5) {
+                player.velY = -300; // Bounce
+                player.y = this.y - player.height; // Snap top to prevent clipping
+
                 if (this.state === 'walking') {
                     this.state = 'shell_still';
-                    this.height = 32; // Duck into shell
-                    this.y += 16;
+                    this.height = 32; // Duck
+                    this.y = this.game.groundY - 32; // Force to ground for alignment? Or just keep relative
                     this.velX = 0;
                 } else if (this.state === 'shell_still') {
                     this.state = 'shell_moving';
-                    // Kick depending on player pos
+                    // Kick away from player
                     this.velX = (player.x < this.x) ? 400 : -400;
+                    // Prevent immediate re-collision?
+                    this.x += (this.velX > 0) ? 10 : -10;
                 } else if (this.state === 'shell_moving') {
                     this.state = 'shell_still';
                     this.velX = 0;
                 }
                 this.game.audio.play('coin');
             } else {
-                // Hit player
+                // Not a stomp
                 if (this.state === 'shell_still') {
-                    // Kick
+                    // Kick it
                     this.state = 'shell_moving';
                     this.velX = (player.x < this.x) ? 400 : -400;
-                    player.x += (player.x < this.x) ? -10 : 10;
+                    this.game.audio.play('coin');
                 } else {
-                    // Hurt player
+                    // Hurt player ONLY if side/bottom
                     player.takeDamage();
                 }
             }
