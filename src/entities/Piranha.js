@@ -1,3 +1,9 @@
+/**
+ * Piranha Class
+ * 
+ * 土管から出現するパックンフラワーのような敵クラスです。
+ * 定期的に上下移動します。
+ */
 export class Piranha {
     constructor(game, x, y) {
         this.game = game;
@@ -17,7 +23,7 @@ export class Piranha {
     }
 
     update(dt) {
-        // Move up and down?
+        // 上下移動のロジック
         this.timer += dt;
         if (this.timer > 2) {
             this.timer = 0;
@@ -25,7 +31,7 @@ export class Piranha {
         }
 
         if (this.checkCollision(this.game.player)) {
-            // Always hurts
+            // 常にダメージを与える
             this.game.player.takeDamage();
         }
     }
@@ -45,7 +51,7 @@ export class Piranha {
         if (this.isUp) {
             ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
         } else {
-            // Draw pipe stub? Or just hide
+            // 土管を描画するか、隠しておく
         }
     }
 }

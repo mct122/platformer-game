@@ -1,5 +1,11 @@
 import { Item } from './Item.js';
 
+/**
+ * Block Class
+ * 
+ * アイテムブロックなどのオブジェクトクラスです。
+ * 叩くとアイテムが出現する機能などを持ちます。
+ */
 export class Block {
     constructor(game, x, y, itemType) {
         this.game = game;
@@ -7,19 +13,18 @@ export class Block {
         this.y = y;
         this.width = 32;
         this.height = 32;
-        this.itemType = itemType; // 'mushroom', 'flower', 'coin'
+        this.itemType = itemType; // 'mushroom', 'flower', 'coin' など
         this.active = true;
         this.bumpY = 0;
         this.bumpTimer = 0;
 
-        // Visuals: just a yellow rect for now? Or generate asset later
-        // Let's use drawing for now
+        // Visuals: 今のところ描画で表現
     }
 
     update(dt) {
         if (this.bumpTimer > 0) {
             this.bumpTimer += dt;
-            // Up and down animation
+            // 上下の跳ねるアニメーション
             if (this.bumpTimer < 0.1) this.bumpY -= 100 * dt;
             else if (this.bumpTimer < 0.2) this.bumpY += 100 * dt;
             else {
@@ -28,11 +33,11 @@ export class Block {
             }
         }
 
-        // Collision Detection from Bottom
+        // 下からの衝突判定
         const p = this.game.player;
         if (this.checkCollision(p)) {
-            // Check if player hit form bottom
-            // Center X check
+            // プレイヤーが下から叩いたか確認
+            // X軸の中心判定
             if (p.x + p.width > this.x + 5 && p.x < this.x + this.width - 5) {
                 if (p.velY < 0 && p.y > this.y + this.height - 10) {
                     // Hit!
@@ -41,10 +46,9 @@ export class Block {
                     this.hit();
                 }
             } else {
-                // Side/Top collision -> solid block
-                // (Simplified AABB resolve)
-                // This might be tricky without full physics engine
-                // For now, let's just do simple floor for top
+                // 横や上からの衝突 -> 固体ブロックとして機能
+                // (簡易的なAABB解決)
+                // 完全な物理エンジンがないため、ここでは上部を床として扱う
                 if (p.y + p.height <= this.y + 10 && p.velY >= 0) {
                     p.isGrounded = true;
                     p.velY = 0;
@@ -59,7 +63,7 @@ export class Block {
         this.active = false;
         this.bumpTimer = 0.001;
 
-        // Spawn Item
+        // アイテムのスポーン
         if (this.itemType) {
             const item = new Item(this.game, this.x, this.y, this.itemType);
             this.game.items.push(item);

@@ -15,6 +15,12 @@ const STATE = {
     GAME_OVER: 3
 };
 
+/**
+ * Game Class
+ * 
+ * ゲームのメインクラスです。
+ * ゲームループ、状態管理、入力処理、描画などを統括します。
+ */
 export class Game {
     constructor() {
         this.canvas = document.createElement('canvas');
@@ -36,7 +42,7 @@ export class Game {
 
         this.groundY = this.canvas.height - 64;
 
-        // Detect base URL from Vite or fallback
+        // ViteのBASE_URL検出、またはフォールバック
         const base = import.meta.env ? import.meta.env.BASE_URL : '/platformer-game/';
 
         this.characters = [
@@ -58,25 +64,25 @@ export class Game {
         ];
         this.selectedCharIndex = 0;
 
-        // Attach touch controls
+        // タッチコントロールのアタッチ
         const btnLeft = document.getElementById('btn-left');
         const btnRight = document.getElementById('btn-right');
         const btnJump = document.getElementById('btn-jump');
         this.input.attachTouchControls(btnLeft, btnRight, btnJump);
 
-        // Audio Toggle
+        // 音声切り替え
         const soundToggle = document.getElementById('sound-toggle');
         soundToggle.addEventListener('click', () => {
             const isMuted = this.audio.toggleMute();
             soundToggle.textContent = isMuted ? '🔇 OFF' : '🔊 ON';
         });
 
-        // Title/Select Click Handling
+        // タイトル/選択画面のクリック処理
         this.canvas.addEventListener('click', (e) => {
             if (this.audio.ctx.state === 'suspended') this.audio.ctx.resume();
             this.handleClick(e);
         });
-        // Also touch for mobile
+        // モバイル用タッチ処理
         this.canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             if (this.audio.ctx.state === 'suspended') this.audio.ctx.resume();
@@ -94,14 +100,20 @@ export class Game {
         this.isRunning = false;
     }
 
+    /**
+     * クリック/タップイベントの処理
+     * タイトル画面やキャラクター選択画面でのインタラクションを制御します。
+     * @param {Object} e - MouseEvent または TouchEvent の情報
+     */
+
     handleClick(e) {
         if (this.state === STATE.TITLE) {
             this.state = STATE.CHAR_SELECT;
-            // Play sound
+            // 効果音再生
             this.audio.play('jump');
         } else if (this.state === STATE.CHAR_SELECT) {
             const rect = this.canvas.getBoundingClientRect();
-            // Scale coords if canvas is scaled by CSS
+            // CSSによるキャンバス拡大縮小の補正
             const scaleX = this.canvas.width / rect.width;
             const scaleY = this.canvas.height / rect.height;
 
@@ -120,47 +132,56 @@ export class Game {
         }
     }
 
+    /**
+     * ゲームを開始します
+     * 選択されたキャラクターで新しいゲームセッションを初期化します。
+     * @param {number} charIndex - 選択されたキャラクターのインデックス
+     */
     startGame(charIndex) {
         this.groundY = this.canvas.height - 64;
         this.selectedCharIndex = charIndex;
-        // Pass the whole character config to Player
+        // キャラクター設定をプレイヤーに渡す
         this.player = new Player(this, this.characters[charIndex]);
 
         this.enemies = [];
         this.items = [];
         this.blocks = [];
 
-        // Level 1-1 Layout Construction
+        // レベル1-1のレイアウト構築
         this.buildLevel1_1();
 
         this.state = STATE.PLAYING;
         this.audio.play('coin');
         setTimeout(() => this.audio.startBGM(), 500);
 
-        this.controlsEl.style.display = 'flex'; // Show controls
+        this.controlsEl.style.display = 'flex'; // コントロール表示
         this.topBarEl.style.display = 'flex';
     }
 
+    /**
+     * レベル1-1を構築します
+     * ブロック、敵、アイテムなどのオブジェクトを配置します。
+     */
     buildLevel1_1() {
-        // 1-1 Style: 
-        // Start -> Goomba -> Block -> Pipes -> Pit -> Goal
+        // 1-1 スタイル: 
+        // スタート -> クリボー -> ブロック -> 土管 -> 穴 -> ゴール
 
         // Blocks
         this.blocks.push(new Block(this, 500, this.groundY - 128, 'mushroom'));
         this.blocks.push(new Block(this, 700, this.groundY - 128, 'coin'));
         this.blocks.push(new Block(this, 732, this.groundY - 128, 'coin'));
         this.blocks.push(new Block(this, 764, this.groundY - 128, 'coin'));
-        this.blocks.push(new Block(this, 800, this.groundY - 200, 'flower')); // High block
+        this.blocks.push(new Block(this, 800, this.groundY - 200, 'flower')); // 高い位置のブロック
 
         // Enemies
         this.enemies.push(new Enemy(this, 600, this.groundY - 32));
         this.enemies.push(new Enemy(this, 1000, this.groundY - 32));
         this.enemies.push(new Koopa(this, 1200, this.groundY));
         this.enemies.push(new Enemy(this, 1300, this.groundY - 32));
-        this.enemies.push(new Piranha(this, 1800, this.groundY - 48)); // Pipe plant (Pipe visual missing but plant is there)
+        this.enemies.push(new Piranha(this, 1800, this.groundY - 48)); // 土管植物 (土管の絵はないが敵はいる)
         this.enemies.push(new Koopa(this, 2200, this.groundY));
 
-        // Goal (Simulated by simple x check for now)
+        // ゴール (今のところ単純なX座標チェック)
         this.goalX = 3000;
     }
 
@@ -198,18 +219,22 @@ export class Game {
             this.draw();
         } catch (e) {
             console.error(e);
-            this.ctx.resetTransform(); // Reset camera
+            this.ctx.resetTransform(); // カメラリセット
             this.ctx.fillStyle = 'red';
             this.ctx.font = '20px sans-serif';
             this.ctx.fillText('Error: ' + e.message, 10, 50);
             this.ctx.fillText(e.stack ? e.stack.slice(0, 100) : '', 10, 80);
-            this.isRunning = false; // Stop loop
+            this.isRunning = false; // ループ停止
             return;
         }
 
         requestAnimationFrame(this.loop.bind(this));
     }
 
+    /**
+     * ゲームの状態を更新します (1フレーム毎)
+     * @param {number} dt - デルタタイム (秒)
+     */
     update(dt) {
         this.background.update(dt);
         if (this.state === STATE.PLAYING) {
@@ -220,24 +245,24 @@ export class Game {
             this.items.forEach(i => i.update(dt));
             this.enemies.forEach(e => e.update(dt));
 
-            // Cleanup
+            // クリーンアップ
             this.enemies = this.enemies.filter(e => !e.markedForDeletion);
             this.items = this.items.filter(i => !i.markedForDeletion);
 
             this.camera.update(p, 4000); // 4000 map width
             this.background.x = -(this.camera.x * 0.2);
 
-            // Goal Check
+            // ゴール判定
             if (p.x > this.goalX) {
-                // Win!
-                this.audio.play('coin'); // Win sound placeholder
-                this.state = STATE.TITLE; // Loop back
+                // 勝利!
+                this.audio.play('coin'); // 勝利音プレースホルダー
+                this.state = STATE.TITLE; // ループして戻る
                 this.audio.stopBGM();
-                this.controlsEl.style.display = 'none'; // Show controls
+                this.controlsEl.style.display = 'none'; // コントロール非表示
                 this.topBarEl.style.display = 'none';
             }
 
-            // Simple Game Over reset
+            // ゲームオーバーのリセット
             if (p.isDead || p.y > this.canvas.height) {
                 this.state = STATE.TITLE;
                 this.audio.stopBGM();
@@ -247,6 +272,10 @@ export class Game {
         }
     }
 
+    /**
+     * ゲーム画面を描画します
+     * 現在の状態 (タイトル, 選択画面, プレイ中) に応じて描画を振り分けます。
+     */
     draw() {
         this.ctx.fillStyle = '#222';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -299,8 +328,8 @@ export class Game {
             this.ctx.arc(x, centerY, 40, 0, Math.PI * 2);
             this.ctx.fill();
 
-            // Load and draw image if not cached, or just quick load helper
-            // For simplicity, create a temp image setup if not existing
+            // 画像が見つからなければロード、またはキャッシュ確認
+            // 簡易的に一時的な画像セットアップを行う
             if (!this.charImages) this.charImages = {};
             if (!this.charImages) this.charImages = {};
             if (!this.charImages[idx]) {
@@ -315,14 +344,13 @@ export class Game {
                 this.ctx.beginPath();
                 this.ctx.arc(x, centerY, 38, 0, Math.PI * 2);
                 this.ctx.clip();
-                // Draw centered and scaled
-                // Source is likely large (photo), so draw cover
-                // Assume square-ish or just center crop
-                // Draw entire image into circle area roughly
+                this.ctx.clip();
+                // 中心に合わせて拡大縮小描画
+                // ソースは写真の可能性があるため、全体を円の中に収めるように描画
                 this.ctx.drawImage(img, x - 40, centerY - 40, 80, 80);
                 this.ctx.restore();
             } else {
-                // Fallback text
+                // フォールバックテキスト
                 this.ctx.fillStyle = 'white';
                 this.ctx.fillText('...', x, centerY);
             }
@@ -348,11 +376,11 @@ export class Game {
         this.ctx.save();
         this.ctx.translate(-this.camera.x, 0);
 
-        // Draw Ground
+        // 地面の描画
         this.ctx.fillStyle = '#834c32';
         this.ctx.fillRect(0, this.groundY, 4000, this.canvas.height - this.groundY);
 
-        // Draw Flagpole (Goal) - Simple stick
+        // ゴールポールの描画 (シンプルな棒)
         this.ctx.fillStyle = '#eee';
         this.ctx.fillRect(this.goalX, this.groundY - 300, 10, 300);
         this.ctx.fillStyle = 'red';

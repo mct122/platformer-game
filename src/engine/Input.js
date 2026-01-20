@@ -1,12 +1,17 @@
+/**
+ * Input Class
+ * 
+ * キーボードおよびタッチ入力を管理するクラスです。
+ */
 export class Input {
     constructor() {
         this.keys = {
             ArrowLeft: false,
             ArrowRight: false,
-            ArrowUp: false, // Jump
-            Space: false,   // Jump
-            KeyA: false,    // Left
-            KeyD: false     // Right
+            ArrowUp: false, // ジャンプ
+            Space: false,   // ジャンプ
+            KeyA: false,    // 左移動
+            KeyD: false     // 右移動
         };
 
         this.state = {
@@ -37,21 +42,15 @@ export class Input {
     }
 
     setupTouch() {
-        // These IDs should match what we put in index.html later if we generate DOM there
-        // For now, let's assume methods will be called by UI elements or we bind to selectors
-
-        // We'll create the UI elements in Game.js or here? 
-        // Let's assume Game.js creates the DOM or we just attach to existing IDs if they existed.
-        // But index.html is empty. We should inject controls.
-
-        // Actually, style.css had .controls classes. We need to inject that HTML.
+        // タッチ操作のセットアップ
+        // index.html または Game.js で生成されたUI要素に対してイベントリスナーを設定します。
     }
 
     attachTouchControls(leftBtn, rightBtn, jumpBtn) {
         const handleTouch = (btn, key, active) => {
             btn.addEventListener('touchstart', (e) => { e.preventDefault(); this.keys[key] = true; this.updateState(); });
             btn.addEventListener('touchend', (e) => { e.preventDefault(); this.keys[key] = false; this.updateState(); });
-            // Mouse fallback for testing
+            // PCでのテスト用マウスイベント
             btn.addEventListener('mousedown', (e) => { this.keys[key] = true; this.updateState(); });
             btn.addEventListener('mouseup', (e) => { this.keys[key] = false; this.updateState(); });
             btn.addEventListener('mouseleave', (e) => { this.keys[key] = false; this.updateState(); });

@@ -1,3 +1,9 @@
+/**
+ * Koopa Class
+ * 
+ * カメの敵キャラです。
+ * 踏むと甲羅になり、蹴ることができる動作を持ちます。
+ */
 export class Koopa {
     constructor(game, x, y) {
         this.game = game;
@@ -19,11 +25,16 @@ export class Koopa {
         this.markedForDeletion = false;
     }
 
+    /**
+     * 状態を更新します
+     * 移動、重力、衝突判定、プレイヤーとの相互作用（踏む、蹴る）を処理します。
+     * @param {number} dt - デルタタイム
+     */
     update(dt) {
-        this.velY += 1500 * dt; // Gravity
+        this.velY += 1500 * dt; // 重力
         this.y += this.velY * dt;
 
-        // Ground collision
+        // 地面との衝突
         if (this.y > this.game.groundY - this.height) {
             this.y = this.game.groundY - this.height;
             this.velY = 0;
@@ -31,29 +42,29 @@ export class Koopa {
 
         if (this.state === 'walking') {
             this.x += this.velX * dt;
-            if (this.x < 0 || this.x > 20000) this.velX *= -1; // Simple world bounds
+            if (this.x < 0 || this.x > 20000) this.velX *= -1; // 単純なワールド境界
         } else if (this.state === 'shell_moving') {
             this.x += this.velX * dt;
         }
 
-        // Check Collision with Player
+        // プレイヤーとの衝突判定
         if (this.checkCollision(this.game.player)) {
             const player = this.game.player;
-            // Stomp Logic: Player falling and above enemy
+            // 踏みつけロジック: プレイヤーが落下中で敵より上にいる
             if (player.velY > 0 && player.y + player.height < this.y + this.height * 0.5) {
-                player.velY = -300; // Bounce
-                player.y = this.y - player.height; // Snap top to prevent clipping
+                player.velY = -300; // バウンス
+                player.y = this.y - player.height; // めり込み防止のために上にスナップ
 
                 if (this.state === 'walking') {
                     this.state = 'shell_still';
-                    this.height = 32; // Duck
-                    this.y = this.game.groundY - 32; // Force to ground for alignment? Or just keep relative
+                    this.height = 32; // しゃがむ
+                    this.y = this.game.groundY - 32; // 位置合わせのために地面に強制移動
                     this.velX = 0;
                 } else if (this.state === 'shell_still') {
                     this.state = 'shell_moving';
-                    // Kick away from player
+                    // プレイヤーから離れる方向に蹴る
                     this.velX = (player.x < this.x) ? 400 : -400;
-                    // Prevent immediate re-collision?
+                    // 即時の再衝突を防ぐ
                     this.x += (this.velX > 0) ? 10 : -10;
                 } else if (this.state === 'shell_moving') {
                     this.state = 'shell_still';
@@ -61,14 +72,14 @@ export class Koopa {
                 }
                 this.game.audio.play('coin');
             } else {
-                // Not a stomp
+                // 踏みつけ以外
                 if (this.state === 'shell_still') {
-                    // Kick it
+                    // 蹴る
                     this.state = 'shell_moving';
                     this.velX = (player.x < this.x) ? 400 : -400;
                     this.game.audio.play('coin');
                 } else {
-                    // Hurt player ONLY if side/bottom
+                    // 側面/下からの接触でのみダメージ
                     player.takeDamage();
                 }
             }
@@ -90,10 +101,10 @@ export class Koopa {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Circular Clip for "Cut out" look
+        // 切り抜き風の円形クリップ
         ctx.beginPath();
-        // Adjust center if height != width (Koopa is 48 high)
-        // Center vertically in the height
+        // 高さ != 幅の場合中心調整 (Koopaは高さ48)
+        // 縦方向を中心に合わせる
         const radius = Math.min(this.width, this.height) / 2;
         ctx.arc(this.width / 2, this.height / 2, radius, 0, Math.PI * 2);
         ctx.clip();

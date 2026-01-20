@@ -1,25 +1,31 @@
+/**
+ * Audio Class
+ * 
+ * BGMと効果音の再生を管理するクラスです。
+ * Web Audio API を使用しています。
+ */
 export class Audio {
     constructor() {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         this.muted = false;
         this.sounds = {};
 
-        // Master Gain
+        // マスターゲイン (音量調整)
         this.masterGain = this.ctx.createGain();
         this.masterGain.connect(this.ctx.destination);
-        this.masterGain.gain.value = 0.3; // Default volume
+        this.masterGain.gain.value = 0.3; // デフォルト音量
 
-        // BGM State
+        // BGMの状態
         this.bgmOscillators = [];
         this.isPlayingBGM = false;
         this.tempo = 120;
-        this.noteTime = 60 / this.tempo / 4; // 16th notes
+        this.noteTime = 60 / this.tempo / 4; // 16分音符
         this.nextNoteTime = 0;
         this.currentNote = 0;
         this.timerID = null;
 
-        // Simple Pattern (C Majorish)
-        // Notes: Frequency or MIDI note number. 0 = rest
+        // シンプルなパターン (Cメジャー風)
+        // ノート: 周波数またはMIDIノート番号。0 = 休符
         // C4=261.6, E4=329.6, G4=392.0, A4=440.0, B4=493.9, C5=523.3
         this.melody = [
             261.6, 261.6, 0, 261.6, 0, 207.6, 261.6, 0, // C C C Ab C
@@ -63,7 +69,7 @@ export class Audio {
     scheduler() {
         if (!this.isPlayingBGM) return;
 
-        // Lookahead
+        // 先読み処理 (Lookahead)
         while (this.nextNoteTime < this.ctx.currentTime + 0.1) {
             this.playStep(this.nextNoteTime);
 
@@ -75,7 +81,7 @@ export class Audio {
     }
 
     playStep(time) {
-        // Logic to loop melody
+        // メロディのループ処理
         const melodyNote = this.melody[this.currentNote % this.melody.length];
         const bassNote = this.bass[this.currentNote % this.bass.length];
 
@@ -113,7 +119,7 @@ export class Audio {
     }
 
     playSynth(type) {
-        // SFX
+        // 効果音 (SFX)
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
 
@@ -133,7 +139,7 @@ export class Audio {
         } else if (type === 'coin') {
             osc.type = 'sine';
             osc.frequency.setValueAtTime(1200, now);
-            osc.frequency.setValueAtTime(1600, now + 0.05); // Coin double ping
+            osc.frequency.setValueAtTime(1600, now + 0.05); // コインの2連音
             gain.gain.setValueAtTime(0.2, now);
             gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
             osc.start(now);
@@ -141,7 +147,7 @@ export class Audio {
         } else if (type === 'death') {
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(400, now);
-            osc.frequency.linearRampToValueAtTime(100, now + 0.5); // Descending
+            osc.frequency.linearRampToValueAtTime(100, now + 0.5); // 下降音
             gain.gain.setValueAtTime(0.3, now);
             gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
             osc.start(now);

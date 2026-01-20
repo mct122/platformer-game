@@ -1,3 +1,9 @@
+/**
+ * Item Class
+ * 
+ * キノコなどのアイテムクラスです。
+ * スポーン動作、重力、プレイヤーによる取得処理を持ちます。
+ */
 export class Item {
     constructor(game, x, y, type) {
         this.game = game;
@@ -7,7 +13,7 @@ export class Item {
         this.height = 32;
         this.type = type; // 'mushroom', 'flower'
         this.velX = 50;
-        this.velY = -200; // Pop up
+        this.velY = -200; // 飛び出す
         this.isSpawning = true;
         this.spawnY = y - 32;
 
@@ -20,6 +26,11 @@ export class Item {
         this.markedForDeletion = false;
     }
 
+    /**
+     * 状態を更新します
+     * 出現時のアニメーション、その後の重力、プレイヤーとの接触判定を行います。
+     * @param {number} dt - デルタタイム
+     */
     update(dt) {
         if (this.isSpawning) {
             this.y -= 50 * dt;
@@ -31,25 +42,25 @@ export class Item {
             return;
         }
 
-        // Apply normal gravity and movement
+        // 通常の重力と移動を適用
         this.velY += 1500 * dt;
         this.x += this.velX * dt;
 
-        // Ground Collision
+        // 地面との衝突
         if (this.y > this.game.groundY - this.height) {
             this.y = this.game.groundY - this.height;
             this.velY = 0;
         }
 
-        // Wall/Bounds bounce
+        // 壁/境界での跳ね返り
         if (this.x < 0 || this.x > 20000) this.velX *= -1;
 
-        // Collect
+        // 取得処理
         if (this.checkCollision(this.game.player)) {
             if (this.type === 'mushroom') this.game.player.grow();
-            // Removed flower logic
+            // フラワーのロジックは削除
             this.markedForDeletion = true;
-            this.game.audio.play('coin'); // Should be powerup sound
+            this.game.audio.play('coin'); // パワーアップ音であるべき
         }
     }
 

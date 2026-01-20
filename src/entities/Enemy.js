@@ -1,3 +1,9 @@
+/**
+ * Enemy Class
+ * 
+ * 基本的な敵キャラクター（クリボーなど）のクラスです。
+ * 徘徊移動し、踏むと倒せる動作を持ちます。
+ */
 export class Enemy {
     constructor(game, x, y) {
         this.game = game;
@@ -30,14 +36,14 @@ export class Enemy {
 
         this.x += this.velX * dt;
 
-        // Simple patrol
+        // 簡易的なパトロール動作
         if (this.x > this.game.canvas.width - 50) this.velX = -this.speed;
         if (this.x < 0) this.velX = this.speed;
 
-        // Checks collision with player
+        // プレイヤーとの衝突判定
         if (this.checkCollision(this.game.player)) {
             if (this.game.player.velY > 0 && this.game.player.y < this.y) {
-                // Stomp Success
+                // 踏みつけ成功
                 this.squash();
                 this.game.player.velY = -300; // Bounce
                 this.game.audio.play('coin');
@@ -59,8 +65,8 @@ export class Enemy {
 
     squash() {
         this.isDead = true;
-        this.height = 16; // Squash visual
-        this.y += 16; // Adjust position to stay on floor
+        this.height = 16; // 潰れた見た目
+        this.y += 16; // 床に接するように位置調整
     }
 
     draw(ctx) {
@@ -72,7 +78,7 @@ export class Enemy {
         ctx.save();
         ctx.translate(this.x, this.y);
 
-        // Circular Clip
+        // 円形のクリッピング
         ctx.beginPath();
         ctx.arc(this.width / 2, this.height / 2, this.width / 2, 0, Math.PI * 2);
         ctx.clip();
