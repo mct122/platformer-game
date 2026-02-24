@@ -4,7 +4,7 @@ import { Koopa } from '../entities/Koopa.js'
 import { QuestionBlock } from '../objects/QuestionBlock.js'
 import { Mushroom } from '../objects/Item.js'
 import { audio } from '../main.js'
-import { MAP_WIDTH } from '../utils/GameData.js'
+import { MAP_WIDTH, CHARACTERS } from '../utils/GameData.js'
 
 const GH = 540       // canvas height
 const GY = GH - 64  // 地面Y (top of ground)
@@ -16,12 +16,11 @@ export class GameScene extends Phaser.Scene {
   create() {
     this.score = 0
     this.coins = 0
-    this.lives = 3
+    this.lives = this.registry.get('lives') ?? 3
     this._dead = false
 
-    // 背景（パララックス）
-    this.bg = this.add.tileSprite(0, 0, MAP_WIDTH, GH, 'sky')
-      .setOrigin(0).setScrollFactor(0)
+    // 背景グラデーション
+    this._buildBackground()
 
     // --- レベル構築 ---
     this._buildLevel()
@@ -56,6 +55,11 @@ export class GameScene extends Phaser.Scene {
     this.events.on('spawnMushroom', (x, y) => { this.mushrooms.add(new Mushroom(this, x, y), true) })
     this.events.on('playerDead', () => this._onDeath())
     this.events.on('playerGrow', () => this._emitHUD())
+    // VFX イベント
+    this.events.on('vfx_stomp',   (x, y, c) => this._fxStomp(x, y, c))
+    this.events.on('vfx_landing', (x, y)    => this._fxDust(x, y, 6))
+    this.events.on('vfx_damage',  ()         => this._fxDamageShake())
+    this.events.on('vfx_block',   (x, y)    => this._fxBlock(x, y))
 
     // ゴールフラグ
     this._buildGoal()
@@ -70,50 +74,95 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.fadeIn(400)
   }
 
+  // =====================================================
+  //  背景レイヤー
+  // =====================================================
+  _buildBackground() {
+    // 空グラデーション
+    const bg = this.add.graphics().setScrollFactor(0)
+    bg.fillGradientStyle(0x5bc8f5, 0x5bc8f5, 0xa8e6ff, 0xa8e6ff, 1)
+    bg.fillRect(0, 0, 960, GH)
+
+    // 丘（遠景パララックス 0.15倍）
+    const hillPositions = [0, 600, 1400, 2200, 3000, 3800, 4600, 5400]
+    hillPositions.forEach(hx => {
+      this.add.image(hx + 100, GY - 10, 'hill')
+        .setOrigin(0, 1)
+        .setScrollFactor(0.15)
+        .setDepth(-2)
+      this.add.image(hx + 320, GY - 10, 'hill')
+        .setOrigin(0, 1)
+        .setScrollFactor(0.15)
+        .setDepth(-2)
+        .setScale(0.7)
+    })
+
+    // 雲（中景パララックス 0.35倍）
+    const cloudY = [60, 100, 80, 120, 70, 90]
+    const cloudX = [120, 400, 750, 1100, 1500, 1900, 2400, 2900, 3400, 3900, 4500, 5100, 5700]
+    cloudX.forEach((cx, i) => {
+      this.add.image(cx, cloudY[i % cloudY.length], 'cloud')
+        .setScrollFactor(0.35)
+        .setDepth(-1)
+        .setAlpha(0.9)
+    })
+  }
+
+  // =====================================================
+  //  レベル構築
+  // =====================================================
   _buildLevel() {
     // 地面セグメント（穴あき）
     this.ground = this.physics.add.staticGroup()
-    const segs = [
-      [0,     2560],  // seg1
-      [2688,  4480],  // seg2（穴 2560-2688）
-      [4608,  MAP_WIDTH] // seg3（穴 4480-4608）
+    const groundSegs = [
+      [0,    2560],
+      [2688, 4480],
+      [4608, MAP_WIDTH]
     ]
-    segs.forEach(([sx, ex]) => {
-      const w = ex - sx
-      // タイルビジュアル
-      this.add.tileSprite(sx, GY + 16, w, TS * 2, '__DEFAULT').setOrigin(0, 0)
-        .setTint(0x8B4513)
-      // 物理ボディ
-      const rect = this.add.rectangle(sx + w / 2, GY + TS, w, TS * 2, 0x8B4513)
-      this.physics.add.existing(rect, true)
-      this.ground.add(rect)
+    groundSegs.forEach(([sx, ex]) => {
+      this._buildGroundSegment(sx, ex)
     })
 
     // 浮き足場
     this.platforms = this.physics.add.staticGroup()
     const pfList = [
-      // [x_left, y_top, width]
-      [480,  GY - 96,  96],
-      [700,  GY - 128, 128],
-      [900,  GY - 192, 64],
-      [1100, GY - 96,  128],
-      [1350, GY - 160, 96],
-      [1600, GY - 96,  160],
-      [1900, GY - 128, 96],
-      [2100, GY - 192, 96],
-      [2200, GY - 96,  128],
-      [2850, GY - 96,  128],
-      [3100, GY - 160, 96],
-      [3400, GY - 96,  192],
-      [3700, GY - 128, 128],
-      [3900, GY - 192, 96],
-      [4150, GY - 96,  160],
-      [4750, GY - 96,  128],
-      [5000, GY - 160, 96],
-      [5300, GY - 96,  192],
-      [5600, GY - 128, 128],
+      [480,  GY - 96,  3],   // 3タイル幅
+      [700,  GY - 128, 4],
+      [900,  GY - 192, 2],
+      [1100, GY - 96,  4],
+      [1350, GY - 160, 3],
+      [1600, GY - 96,  5],
+      [1900, GY - 128, 3],
+      [2100, GY - 192, 3],
+      [2200, GY - 96,  4],
+      [2850, GY - 96,  4],
+      [3100, GY - 160, 3],
+      [3400, GY - 96,  6],
+      [3700, GY - 128, 4],
+      [3900, GY - 192, 3],
+      [4150, GY - 96,  5],
+      [4750, GY - 96,  4],
+      [5000, GY - 160, 3],
+      [5300, GY - 96,  6],
+      [5600, GY - 128, 4],
+      // 終盤の階段
+      [5950, GY - 64,  3],
+      [5950, GY - 96,  2],
+      [5950, GY - 128, 1],
     ]
-    pfList.forEach(([x, y, w]) => this._addPlatform(x, y, w))
+    pfList.forEach(([x, y, tiles]) => this._addPlatform(x, y, tiles))
+
+    // パイプ（装飾 + 衝突あり）
+    const pipeList = [
+      [320,  2],  // [x, 高さ(タイル数)]
+      [820,  3],
+      [1800, 2],
+      [2450, 4],
+      [3250, 2],
+      [4900, 3],
+      [5150, 2],
+    ]
+    pipeList.forEach(([px, ph]) => this._addPipe(px, ph))
 
     // ?ブロック
     this.qblocks = this.physics.add.staticGroup()
@@ -160,7 +209,7 @@ export class GameScene extends Phaser.Scene {
       { type: 'koopa',  x: 5900, y: GY },
     ]
     this._goombaList = []
-    this._koopaList = []
+    this._koopaList  = []
     enemyList.forEach(({ type, x, y }) => {
       if (type === 'goomba') {
         const g = new Goomba(this, x, y - 18)
@@ -177,68 +226,115 @@ export class GameScene extends Phaser.Scene {
     this.mushrooms = this.physics.add.group({ runChildUpdate: true })
   }
 
-  _addPlatform(x, y, w) {
-    const rect = this.add.rectangle(x + w / 2, y + TS / 2, w, TS, 0x5c8a32)
-      .setStrokeStyle(2, 0x3a5c20)
+  /** 地面セグメントをタイルで描画 */
+  _buildGroundSegment(sx, ex) {
+    const w = ex - sx
+    const tileW = Math.ceil(w / TS)
+
+    // 一番上の行：草付きタイル
+    this.add.tileSprite(sx, GY, w, TS, 'tile_ground').setOrigin(0, 0)
+
+    // 下の2行：土タイル
+    this.add.tileSprite(sx, GY + TS, w, TS * 2, 'tile_soil').setOrigin(0, 0)
+
+    // 物理ボディ（地面全体）
+    const rect = this.add.rectangle(sx + w / 2, GY + TS, w, TS * 3)
+    this.physics.add.existing(rect, true)
+    this.ground.add(rect)
+  }
+
+  /** 足場をレンガタイルで描画 */
+  _addPlatform(x, y, tiles) {
+    const w = tiles * TS
+    this.add.tileSprite(x, y, w, TS, 'tile_brick').setOrigin(0, 0)
+
+    const rect = this.add.rectangle(x + w / 2, y + TS / 2, w, TS)
+    this.physics.add.existing(rect, true)
+    this.platforms.add(rect)
+  }
+
+  /** パイプを配置（ビジュアル + 物理ボディ） */
+  _addPipe(x, heightTiles) {
+    const pipeW = 64
+    const bodyH = (heightTiles - 1) * TS
+    const baseY = GY  // 地面の上端
+
+    // パイプ胴体
+    if (bodyH > 0) {
+      this.add.tileSprite(x, baseY - bodyH, pipeW, bodyH, 'tile_pipe_body').setOrigin(0, 0)
+    }
+
+    // パイプ口（頭）
+    this.add.image(x + pipeW / 2, baseY - bodyH - TS / 2 - 2, 'tile_pipe_head').setDepth(1)
+
+    // 物理ボディ
+    const totalH = heightTiles * TS
+    const rect = this.add.rectangle(x + pipeW / 2, baseY - totalH / 2, pipeW, totalH)
     this.physics.add.existing(rect, true)
     this.platforms.add(rect)
   }
 
   _buildGoal() {
     this.goalX = MAP_WIDTH - 200
+
     // 旗ポール
-    this.add.rectangle(this.goalX, GY - 150, 8, 300, 0xdddddd)
-    this.add.rectangle(this.goalX + 34, GY - 285, 60, 28, 0xff0000)
-    this.add.text(this.goalX - 40, GY - 320, 'GOAL', {
+    this.add.rectangle(this.goalX, GY - 150, 6, 300, 0xcccccc)
+    // 旗
+    const flag = this.add.triangle(
+      this.goalX + 3, GY - 295,
+      this.goalX + 3, GY - 295,
+      this.goalX + 45, GY - 275,
+      this.goalX + 3, GY - 255,
+      0xff2020
+    )
+    // GOAL テキスト
+    this.add.text(this.goalX - 10, GY - 330, 'GOAL', {
       fontFamily: 'monospace', fontSize: '20px', color: '#ffffff',
       stroke: '#000000', strokeThickness: 4
-    })
-    // ゴール判定用透明ゾーン
+    }).setOrigin(0.5)
+
+    // 台座
+    this.add.rectangle(this.goalX, GY + 16, 24, 40, 0xaaaaaa)
+
+    // ゴール判定ゾーン
     this.goalZone = this.add.zone(this.goalX, GY - 150, 60, 300)
     this.physics.world.enable(this.goalZone)
     this.goalZone.body.setAllowGravity(false)
   }
 
-  // プレイヤーと敵の衝突処理
+  // =====================================================
+  //  衝突処理
+  // =====================================================
   _onPlayerEnemyOverlap(player, enemy) {
-    if (player.isDead) return
-    const isGoomba = enemy instanceof Goomba
-    const isKoopa  = enemy instanceof Koopa
-    if (enemy.isDead) return
+    if (player.isDead || enemy.isDead) return
 
-    // 踏みつけ判定: プレイヤーが下降中 かつ 敵より上にいる
     const stomping = player.body.velocity.y > 50 &&
                      player.body.bottom < enemy.body.top + 20
 
     if (stomping) {
-      if (isGoomba) enemy.stomp(player)
-      if (isKoopa)  enemy.stomp(player)
+      enemy.stomp(player)
     } else {
-      if (isGoomba) enemy.touchPlayer(player)
-      if (isKoopa)  enemy.touchPlayer(player)
+      enemy.touchPlayer(player)
     }
   }
 
-  // プレイヤーがブロックに衝突
   _onPlayerBlockCollide(player, block) {
-    // プレイヤーが下から当たった（頭突き）
     if (player.body.velocity.y < 0 && player.body.top < block.body.bottom) {
       block.hitFromBelow(player)
     }
   }
 
+  // =====================================================
+  //  メインループ
+  // =====================================================
   update(time, delta) {
     const dt = delta / 1000
     if (this._dead) return
 
     this.player.update(dt)
 
-    // 各敵を更新
     this._goombaList.forEach(g => { if (g.active) g.update(dt) })
     this._koopaList.forEach(k => { if (k.active) k.update(dt) })
-
-    // パララックス背景
-    this.bg.tilePositionX = this.cameras.main.scrollX * 0.3
 
     // 穴落下判定
     if (this.player.y > GH + 100 && !this.player.isDead) {
@@ -257,6 +353,9 @@ export class GameScene extends Phaser.Scene {
     })
   }
 
+  // =====================================================
+  //  スコア / HUD
+  // =====================================================
   _addScore(v) {
     this.score += v
     this._emitHUD()
@@ -275,17 +374,88 @@ export class GameScene extends Phaser.Scene {
     })
   }
 
+  // =====================================================
+  //  VFX ヘルパー
+  // =====================================================
+  _fxStomp(x, y, tint = 0xffcc00) {
+    try {
+      const e = this.add.particles(x, y, 'particle_star', {
+        speed: { min: 80, max: 220 },
+        angle: { min: 190, max: 350 },
+        scale: { start: 1, end: 0 },
+        tint,
+        lifespan: 550,
+        quantity: 12,
+        gravityY: 500,
+        emitting: false,
+        depth: 30
+      })
+      e.explode(12)
+      this.time.delayedCall(650, () => e.destroy())
+    } catch (_) {}
+  }
+
+  _fxDust(x, y, count = 6) {
+    try {
+      const e = this.add.particles(x, y, 'particle_dust', {
+        speed: { min: 20, max: 80 },
+        angle: { min: 190, max: 350 },
+        scale: { start: 0.8, end: 0 },
+        lifespan: 350,
+        quantity: count,
+        gravityY: 150,
+        emitting: false,
+        depth: 25
+      })
+      e.explode(count)
+      this.time.delayedCall(450, () => e.destroy())
+    } catch (_) {}
+  }
+
+  _fxBlock(x, y) {
+    try {
+      const e = this.add.particles(x, y - 16, 'particle_spark', {
+        speed: { min: 40, max: 140 },
+        angle: { min: 200, max: 340 },
+        scale: { start: 0.9, end: 0 },
+        tint: 0xffd700,
+        lifespan: 400,
+        quantity: 8,
+        gravityY: 300,
+        emitting: false,
+        depth: 25
+      })
+      e.explode(8)
+      this.time.delayedCall(500, () => e.destroy())
+    } catch (_) {}
+  }
+
+  _fxDamageShake() {
+    this.cameras.main.shake(250, 0.006)
+    // 画面を一瞬赤くフラッシュ
+    const flash = this.add.rectangle(480, 270, 960, 540, 0xff0000, 0.35)
+      .setScrollFactor(0).setDepth(50)
+    this.tweens.add({ targets: flash, alpha: 0, duration: 250, onComplete: () => flash.destroy() })
+  }
+
+  // =====================================================
+  //  死亡 / クリア
+  // =====================================================
   _onDeath() {
     if (this._dead) return
     this._dead = true
     this.lives--
+    this.registry.set('lives', this.lives)
+
     this.time.delayedCall(2000, () => {
       audio.stopBGM()
       this.cameras.main.fadeOut(500)
       this.cameras.main.once('camerafadeoutcomplete', () => {
         if (this.lives <= 0) {
+          this.registry.set('lives', 3)
+          this.registry.set('lastScore', this.score)
           this.scene.stop('UIScene')
-          this.scene.start('TitleScene')
+          this.scene.start('GameOverScene', { score: this.score })
         } else {
           this._dead = false
           this.scene.restart()
@@ -299,10 +469,15 @@ export class GameScene extends Phaser.Scene {
     this._dead = true
     audio.stopBGM()
     audio.play('clear')
+
+    // タイムボーナス算出（仮: スコア×0.1 まるめ）
+    const timeBonus = Math.floor(this.score * 0.1 / 50) * 50
+    this.registry.set('lastScore', this.score + timeBonus)
+
     this.cameras.main.fadeOut(1200, 255, 255, 255)
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.stop('UIScene')
-      this.scene.start('TitleScene')
+      this.scene.start('StageClearScene', { score: this.score, timeBonus })
     })
   }
 }

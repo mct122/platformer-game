@@ -28,6 +28,15 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
+    // タイルテクスチャを生成
+    this._makeGroundTile()
+    this._makeBrickTile()
+    this._makeGrassTile()
+    this._makePipeTextures()
+    this._makeCloudTexture()
+    this._makeHillTexture()
+    this._makeParticleTextures()
+
     // 各キャラの円形テクスチャを事前生成（選択画面用・プレイヤー用）
     CHARACTERS.forEach((c, i) => {
       this._makeCircleTex(`avatar_${i}`, `char_normal_${i}`, 60)
@@ -35,6 +44,157 @@ export class BootScene extends Phaser.Scene {
       this._makeCircleTex(`player_big_${i}`, `char_super_${i}`, 56)
     })
     this.scene.start('TitleScene')
+  }
+
+  /** 地面タイル（草付き土ブロック 32×32） */
+  _makeGroundTile() {
+    const g = this.make.graphics({ add: false })
+    // 土ベース
+    g.fillStyle(0xb8864e)
+    g.fillRect(0, 0, 32, 32)
+    // 草の部分（上8px）
+    g.fillStyle(0x4caf3c)
+    g.fillRect(0, 0, 32, 8)
+    // 草ハイライト
+    g.fillStyle(0x6dcf56)
+    g.fillRect(0, 0, 32, 3)
+    // 土のグリッド線
+    g.fillStyle(0x9c6a30)
+    g.fillRect(0, 20, 32, 1)
+    g.fillRect(16, 8, 1, 24)
+    // 輪郭
+    g.lineStyle(1, 0x000000, 0.25)
+    g.strokeRect(0, 0, 32, 32)
+    g.generateTexture('tile_ground', 32, 32)
+    g.destroy()
+  }
+
+  /** レンガタイル（プラットフォーム・ブロック用 32×32） */
+  _makeBrickTile() {
+    const g = this.make.graphics({ add: false })
+    // ベース
+    g.fillStyle(0xc85c1a)
+    g.fillRect(0, 0, 32, 32)
+    // モルタル（目地）
+    g.fillStyle(0x8b3a10)
+    g.fillRect(0, 15, 32, 2)      // 横目地
+    g.fillRect(8, 0, 2, 15)       // 上段縦目地
+    g.fillRect(22, 0, 2, 15)      // 上段縦目地2
+    g.fillRect(0, 17, 16, 15)     // 下段左
+    g.fillRect(18, 17, 14, 15)    // 下段右
+    // ハイライト
+    g.fillStyle(0xe07030)
+    g.fillRect(2, 2, 4, 11)
+    g.fillRect(12, 2, 8, 11)
+    g.fillRect(24, 2, 6, 11)
+    g.fillRect(2, 19, 12, 11)
+    g.fillRect(20, 19, 10, 11)
+    g.generateTexture('tile_brick', 32, 32)
+    g.destroy()
+  }
+
+  /** 草ブロック（地面の継続部分、草なし） */
+  _makeGrassTile() {
+    const g = this.make.graphics({ add: false })
+    g.fillStyle(0xb8864e)
+    g.fillRect(0, 0, 32, 32)
+    g.fillStyle(0x9c6a30)
+    g.fillRect(0, 16, 32, 1)
+    g.fillRect(16, 0, 1, 32)
+    g.lineStyle(1, 0x000000, 0.2)
+    g.strokeRect(0, 0, 32, 32)
+    g.generateTexture('tile_soil', 32, 32)
+    g.destroy()
+  }
+
+  /** パイプ用テクスチャ（縦・横） */
+  _makePipeTextures() {
+    // パイプ胴体（32×32 繰り返し用）
+    const body = this.make.graphics({ add: false })
+    body.fillStyle(0x2da41c)
+    body.fillRect(0, 0, 32, 32)
+    body.fillStyle(0x3de828)
+    body.fillRect(4, 0, 8, 32)
+    body.fillStyle(0x1a7a10)
+    body.fillRect(24, 0, 8, 32)
+    body.lineStyle(1, 0x000000, 0.3)
+    body.strokeRect(0, 0, 32, 32)
+    body.generateTexture('tile_pipe_body', 32, 32)
+    body.destroy()
+
+    // パイプ口（64×32 = 2タイル幅 × 1タイル高さ）
+    const head = this.make.graphics({ add: false })
+    head.fillStyle(0x2da41c)
+    head.fillRect(0, 0, 64, 32)
+    head.fillStyle(0x3de828)
+    head.fillRect(4, 4, 12, 24)
+    head.fillStyle(0x1a7a10)
+    head.fillRect(48, 4, 12, 24)
+    head.lineStyle(2, 0x000000, 0.4)
+    head.strokeRect(0, 0, 64, 32)
+    head.generateTexture('tile_pipe_head', 64, 32)
+    head.destroy()
+  }
+
+  /** 雲テクスチャ */
+  _makeCloudTexture() {
+    const g = this.make.graphics({ add: false })
+    // 雲の形（楕円を組み合わせ）
+    g.fillStyle(0xffffff)
+    g.fillEllipse(60, 40, 80, 50)
+    g.fillEllipse(40, 50, 60, 40)
+    g.fillEllipse(85, 50, 60, 40)
+    // 輪郭
+    g.lineStyle(2, 0xdddddd, 0.5)
+    g.strokeEllipse(60, 40, 80, 50)
+    g.generateTexture('cloud', 120, 70)
+    g.destroy()
+  }
+
+  /** 背景の丘テクスチャ */
+  _makeHillTexture() {
+    const g = this.make.graphics({ add: false })
+    g.fillStyle(0x5cb832)
+    g.fillEllipse(100, 80, 200, 100)
+    g.fillStyle(0x70d840)
+    g.fillEllipse(100, 70, 180, 70)
+    g.generateTexture('hill', 200, 90)
+    g.destroy()
+  }
+
+  /** パーティクル用テクスチャ群 */
+  _makeParticleTextures() {
+    // 星パーティクル（踏みつけ・コイン用）
+    const star = this.make.graphics({ add: false })
+    star.fillStyle(0xffffff)
+    star.fillTriangle(8, 0, 12, 6, 4, 6)   // 上
+    star.fillTriangle(8, 16, 12, 10, 4, 10) // 下
+    star.fillTriangle(0, 8, 6, 4, 6, 12)   // 左
+    star.fillTriangle(16, 8, 10, 4, 10, 12) // 右
+    star.generateTexture('particle_star', 16, 16)
+    star.destroy()
+
+    // 丸パーティクル（汎用）
+    const circle = this.make.graphics({ add: false })
+    circle.fillStyle(0xffffff)
+    circle.fillCircle(5, 5, 5)
+    circle.generateTexture('particle_circle', 10, 10)
+    circle.destroy()
+
+    // ほこりパーティクル（着地・走り用）
+    const dust = this.make.graphics({ add: false })
+    dust.fillStyle(0xe8d8b0, 0.9)
+    dust.fillCircle(6, 6, 6)
+    dust.generateTexture('particle_dust', 12, 12)
+    dust.destroy()
+
+    // スパーク（シェル・ブロック用）
+    const spark = this.make.graphics({ add: false })
+    spark.fillStyle(0xffffff)
+    spark.fillRect(0, 3, 10, 4)
+    spark.fillRect(3, 0, 4, 10)
+    spark.generateTexture('particle_spark', 10, 10)
+    spark.destroy()
   }
 
   /** 写真を円形にクリップしたテクスチャを生成 */
