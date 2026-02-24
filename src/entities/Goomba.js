@@ -12,6 +12,17 @@ export class Goomba extends Phaser.Physics.Arcade.Sprite {
     this.isDead = false
     this._deadTimer = 0
     this.body.setVelocityX(-this.speed)
+
+    // のしのし歩きアニメ（スケール揺れ）
+    this._walkTween = scene.tweens.add({
+      targets: this,
+      scaleX: 1.08,
+      scaleY: 0.94,
+      duration: 220,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut'
+    })
   }
 
   update(dt) {
@@ -28,14 +39,18 @@ export class Goomba extends Phaser.Physics.Arcade.Sprite {
 
   stomp(player) {
     this.isDead = true
+    this._walkTween?.stop()
     this.body.setVelocity(0)
-    this.body.setGravityY(-2600) // 潰れたまま浮く
+    this.body.setGravityY(-2600)
+    // 潰れ演出
     this.setDisplaySize(36, 16)
     this.setY(this.y + 10)
     this.setAlpha(0.8)
     audio.play('stomp')
-    player.body.setVelocityY(-380) // プレイヤーバウンス
+    player.body.setVelocityY(-380)
     this.scene.events.emit('addScore', 100)
+    // VFX
+    this.scene.events.emit('vfx_stomp', this.x, this.y, 0xff8800)
   }
 
   touchPlayer(player) {

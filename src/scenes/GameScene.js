@@ -55,6 +55,11 @@ export class GameScene extends Phaser.Scene {
     this.events.on('spawnMushroom', (x, y) => { this.mushrooms.add(new Mushroom(this, x, y), true) })
     this.events.on('playerDead', () => this._onDeath())
     this.events.on('playerGrow', () => this._emitHUD())
+    // VFX イベント
+    this.events.on('vfx_stomp',   (x, y, c) => this._fxStomp(x, y, c))
+    this.events.on('vfx_landing', (x, y)    => this._fxDust(x, y, 6))
+    this.events.on('vfx_damage',  ()         => this._fxDamageShake())
+    this.events.on('vfx_block',   (x, y)    => this._fxBlock(x, y))
 
     // ゴールフラグ
     this._buildGoal()
@@ -367,6 +372,70 @@ export class GameScene extends Phaser.Scene {
       score: this.score, coins: this.coins, lives: this.lives,
       x: this.player.x, goalX: this.goalX
     })
+  }
+
+  // =====================================================
+  //  VFX ヘルパー
+  // =====================================================
+  _fxStomp(x, y, tint = 0xffcc00) {
+    try {
+      const e = this.add.particles(x, y, 'particle_star', {
+        speed: { min: 80, max: 220 },
+        angle: { min: 190, max: 350 },
+        scale: { start: 1, end: 0 },
+        tint,
+        lifespan: 550,
+        quantity: 12,
+        gravityY: 500,
+        emitting: false,
+        depth: 30
+      })
+      e.explode(12)
+      this.time.delayedCall(650, () => e.destroy())
+    } catch (_) {}
+  }
+
+  _fxDust(x, y, count = 6) {
+    try {
+      const e = this.add.particles(x, y, 'particle_dust', {
+        speed: { min: 20, max: 80 },
+        angle: { min: 190, max: 350 },
+        scale: { start: 0.8, end: 0 },
+        lifespan: 350,
+        quantity: count,
+        gravityY: 150,
+        emitting: false,
+        depth: 25
+      })
+      e.explode(count)
+      this.time.delayedCall(450, () => e.destroy())
+    } catch (_) {}
+  }
+
+  _fxBlock(x, y) {
+    try {
+      const e = this.add.particles(x, y - 16, 'particle_spark', {
+        speed: { min: 40, max: 140 },
+        angle: { min: 200, max: 340 },
+        scale: { start: 0.9, end: 0 },
+        tint: 0xffd700,
+        lifespan: 400,
+        quantity: 8,
+        gravityY: 300,
+        emitting: false,
+        depth: 25
+      })
+      e.explode(8)
+      this.time.delayedCall(500, () => e.destroy())
+    } catch (_) {}
+  }
+
+  _fxDamageShake() {
+    this.cameras.main.shake(250, 0.006)
+    // 画面を一瞬赤くフラッシュ
+    const flash = this.add.rectangle(480, 270, 960, 540, 0xff0000, 0.35)
+      .setScrollFactor(0).setDepth(50)
+    this.tweens.add({ targets: flash, alpha: 0, duration: 250, onComplete: () => flash.destroy() })
   }
 
   // =====================================================

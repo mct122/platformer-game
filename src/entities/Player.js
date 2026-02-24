@@ -22,10 +22,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // ジャンプパラメータ
     this.JUMP_VEL = -690
-    this.COYOTE_TIME = 0.12   // 崖端猶予（秒）
-    this.JUMP_BUFFER = 0.12   // 先行入力猶予（秒）
-    this.FALL_MULTI = 1.8     // 落下加速倍率
-    this.LOW_JUMP_MULTI = 2.8 // 早離し減衰倍率
+    this.COYOTE_TIME = 0.12
+    this.JUMP_BUFFER = 0.12
+    this.FALL_MULTI = 1.8
+    this.LOW_JUMP_MULTI = 2.8
 
     // タイマー
     this._coyote = 0
@@ -58,8 +58,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   update(dt) {
     if (this.isDead) {
-      // 死亡アニメーション（回転しながら落下）
-      this.angle += 8
+      this.angle += 8  // 回転しながら落下
       return
     }
 
@@ -71,22 +70,49 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   _updateTimers(dt) {
-    // 着地確認
     const onGround = this.body.blocked.down
-    if (onGround && !this.isGrounded) this._coyote = this.COYOTE_TIME
+
+    // 着地した瞬間のスカッシュ演出
+    if (onGround && !this.isGrounded) {
+      this.scene.tweens.killTweensOf(this)
+      this.scene.tweens.add({
+        targets: this,
+        scaleX: 1.35,
+        scaleY: 0.68,
+        duration: 65,
+        yoyo: true,
+        ease: 'Quad.Out'
+      })
+      if (this.body.velocity.y > 200) {
+        this.scene.events.emit('vfx_landing', this.x, this.body.bottom)
+      }
+    }
+
+    // ジャンプした瞬間のストレッチ演出（縦に伸びる）
+    if (!onGround && this.isGrounded && this.body.velocity.y < 0) {
+      this.scene.tweens.killTweensOf(this)
+      this.scene.tweens.add({
+        targets: this,
+        scaleX: 0.75,
+        scaleY: 1.3,
+        duration: 80,
+        yoyo: true,
+        ease: 'Quad.Out'
+      })
+    }
+
     if (onGround) this._coyote = this.COYOTE_TIME
     if (!onGround) this._coyote -= dt
     this.isGrounded = onGround
 
-    // ジャンプ先行入力
     if (this._buffer > 0) this._buffer -= dt
 
-    // 無敵タイマー
     if (this._invTimer > 0) {
       this._invTimer -= dt
       if (this._invTimer <= 0) {
         this.isInvulnerable = false
         this.setAlpha(1)
+        this.setScale(1)
       }
     }
   }
@@ -102,12 +128,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.setFlipX(false)
     } else {
       body.setAccelerationX(0)
-      // 摩擦で自然減速
       const drag = Math.sign(body.velocity.x) * Math.min(this.DRAG * dt * 60, Math.abs(body.velocity.x))
       body.setVelocityX(body.velocity.x - drag)
     }
 
-    // 最大速度クランプ
     if (Math.abs(body.velocity.x) > this.WALK_SPEED) {
       body.setVelocityX(Math.sign(body.velocity.x) * this.WALK_SPEED)
     }
@@ -116,7 +140,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   _applyJump() {
     const body = this.body
 
-    // ジャンプ先行入力を記録
     if (Phaser.Input.Keyboard.JustDown(this.keys.jump) ||
         Phaser.Input.Keyboard.JustDown(this.keys.jumpB) ||
         this._jumpJustPressed) {
@@ -124,7 +147,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this._jumpJustPressed = false
     }
 
-    // コヨーテタイム内かつバッファあればジャンプ
     if (this._buffer > 0 && this._coyote > 0) {
       body.setVelocityY(this.JUMP_VEL)
       this._coyote = 0
@@ -138,10 +160,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const gravity = this.scene.physics.world.gravity.y
 
     if (vy > 0) {
-      // 落下を重くして着地感を出す
       this.body.setAccelerationY(gravity * (this.FALL_MULTI - 1))
     } else if (vy < 0 && !this.wantsJump) {
-      // ジャンプボタンを早く離すと上昇が弱まる
       this.body.setAccelerationY(gravity * (this.LOW_JUMP_MULTI - 1))
     } else {
       this.body.setAccelerationY(0)
@@ -154,7 +174,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setAlpha(Math.sin(this._blinkTimer * 30) > 0 ? 1 : 0.3)
   }
 
-  // モバイルからジャンプ入力を受け取る
   triggerJump() { this._jumpJustPressed = true }
 
   grow() {
@@ -163,11 +182,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setTexture(`player_big_${this.charIdx}`)
     this.body.setSize(PLAYER_SIZE - 6 + 12, PLAYER_SIZE - 4 + 12)
     audio.play('powerup')
+    // パワーアップのスケールポップ
+    this.scene.tweens.add({
+      targets: this,
+      scaleX: { from: 0.6, to: 1 },
+      scaleY: { from: 1.6, to: 1 },
+      duration: 200,
+      ease: 'Back.Out'
+    })
     this.scene.events.emit('playerGrow')
   }
 
   takeDamage() {
     if (this.isInvulnerable || this.isDead) return
+    this.scene.events.emit('vfx_damage')  // 画面シェイク+赤フラッシュ
     if (this.powerState === 'big') {
       this.powerState = 'small'
       this.setTexture(`player_small_${this.charIdx}`)
@@ -187,7 +215,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     audio.play('death')
     this.body.setVelocity(0, -500)
     this.body.setAcceleration(0)
-    this.body.setGravityY(-2600 + 1200) // 少し重力弱めて弧を描く
+    this.body.setGravityY(-2600 + 1200)
     this.body.checkCollision.none = true
     this.scene.events.emit('playerDead')
   }

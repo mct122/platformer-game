@@ -9,10 +9,20 @@ export class Koopa extends Phaser.Physics.Arcade.Sprite {
     this.setDisplaySize(36, 48)
     this.body.setSize(32, 44)
     this.setDepth(5)
-    this.state = 'walking' // walking | shell_still | shell_moving
+    this.state = 'walking'
     this.speed = 45
     this.isDead = false
     this.body.setVelocityX(-this.speed)
+
+    // 歩きアニメ
+    this._walkTween = scene.tweens.add({
+      targets: this,
+      angle: { from: -5, to: 5 },
+      duration: 280,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut'
+    })
   }
 
   update(dt) {
@@ -24,6 +34,8 @@ export class Koopa extends Phaser.Physics.Arcade.Sprite {
     } else if (this.state === 'shell_moving') {
       if (this.body.blocked.left || this.body.blocked.right) {
         this.body.setVelocityX(-this.body.velocity.x)
+        // シェルが壁に当たった時のスパーク
+        this.scene.events.emit('vfx_block', this.x, this.y)
       }
     }
   }
@@ -31,16 +43,18 @@ export class Koopa extends Phaser.Physics.Arcade.Sprite {
   stomp(player) {
     if (this.state === 'walking') {
       this.state = 'shell_still'
+      this._walkTween?.stop()
+      this.setAngle(0)
       this.setDisplaySize(36, 30)
       this.body.setSize(32, 26)
       this.body.setVelocityX(0)
       player.body.setVelocityY(-380)
       audio.play('stomp')
       this.scene.events.emit('addScore', 100)
+      this.scene.events.emit('vfx_stomp', this.x, this.y, 0x22dd44)
     } else if (this.state === 'shell_still') {
       this.kickShell(player)
     } else if (this.state === 'shell_moving') {
-      // 動いてる甲羅の上に乗ったら停止
       this.state = 'shell_still'
       this.body.setVelocityX(0)
       player.body.setVelocityY(-380)
