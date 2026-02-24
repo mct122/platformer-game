@@ -4,13 +4,43 @@ export class BootScene extends Phaser.Scene {
   constructor() { super('BootScene') }
 
   preload() {
-    // ローディングバー
-    const bar = this.add.rectangle(480, 270, 0, 20, 0x00d4ff)
-    this.load.on('progress', v => bar.setSize(v * 600, 20))
+    const W = this.scale.width
+    const H = this.scale.height
 
-    this.add.text(480, 240, 'Loading...', {
-      fontFamily: 'monospace', fontSize: '20px', color: '#ffffff'
+    // 背景
+    const bg = this.add.graphics()
+    bg.fillGradientStyle(0x0a0a1a, 0x0a0a1a, 0x001033, 0x001033, 1)
+    bg.fillRect(0, 0, W, H)
+
+    // タイトル
+    this.add.text(W / 2, H / 2 - 80, 'SUPER PLATFORMER', {
+      fontFamily: '"Orbitron", monospace',
+      fontSize: '32px',
+      fontStyle: 'bold',
+      color: '#00d4ff',
+      stroke: '#003366',
+      strokeThickness: 6
     }).setOrigin(0.5)
+
+    // ローディングバー外枠
+    const barW = 400
+    const barH = 16
+    const barX = W / 2 - barW / 2
+    const barY = H / 2 + 10
+    this.add.rectangle(W / 2, barY + barH / 2, barW + 4, barH + 4, 0x334466)
+    const bar = this.add.rectangle(barX, barY, 0, barH, 0x00d4ff).setOrigin(0, 0)
+
+    // パーセント表示
+    const pctText = this.add.text(W / 2, barY + barH + 16, '0%', {
+      fontFamily: '"Orbitron", monospace',
+      fontSize: '12px',
+      color: '#aabbff'
+    }).setOrigin(0.5, 0)
+
+    this.load.on('progress', v => {
+      bar.setSize(v * barW, barH)
+      pctText.setText(Math.floor(v * 100) + '%')
+    })
 
     // 背景
     this.load.image('sky', 'assets/sky.png')
