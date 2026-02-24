@@ -1,72 +1,8 @@
-# ============================================================
-# Unity
-# ============================================================
-/[Ll]ibrary/
-/[Tt]emp/
-/[Oo]bj/
-/[Bb]uild/
-/[Bb]uilds/
-/[Ll]ogs/
-/[Uu]ser[Ss]ettings/
-/[Mm]emoryCaptures/
-/[Rr]ecordings/
-
-ExportedObj/
-Assets/StreamingAssets/crashlytics-build.properties
-
-# Builds
-*.apk
-*.aab
-*.unitypackage
-*.app
-
-# Package cache
-/[Pp]ackages/packages-lock.json
-
-# ============================================================
-# IDE
-# ============================================================
-.vs/
-*.suo
-*.user
-.idea/
-*.DotSettings.user
-.vscode/
-
-# Generated project files
-*.csproj
-*.unityproj
-*.sln
-*.tmp
-*.pidb
-*.booproj
-*.svd
-*.pdb
-*.mdb
-*.opendb
-*.VC.db
-
-# ============================================================
-# OS
-# ============================================================
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-Desktop.ini
-
-# ============================================================
-# Logs
-# ============================================================
-*.log
-npm-debug.log*
-
-# ============================================================
-# Legacy JS project
-# ============================================================
-_legacy/node_modules/
-_legacy/dist/
+node_modules/
+dist/
+dist-ssr/
 *.local
+.DS_Store
+*.log
+.vscode/
+.idea/
