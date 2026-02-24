@@ -10,13 +10,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.charIdx = charIdx
     this.powerState = 'small'
 
-    // 物理設定
-    this.body.setSize(PLAYER_SIZE - 6, PLAYER_SIZE - 4)
-    this.body.setMaxVelocityX(300)
-    this.setDepth(10)
-
     // キャラクター固有ステータス
     const s = CHARACTERS[charIdx]?.stats ?? CHARACTERS[0].stats
+
+    // 物理設定
+    this.body.setSize(PLAYER_SIZE - 6, PLAYER_SIZE - 4)
+    this.body.setMaxVelocityX(s.speed)  // キャラごとの速度上限
+    this.setDepth(10)
 
     // 移動パラメータ
     this.WALK_SPEED = s.speed

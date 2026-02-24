@@ -15,10 +15,14 @@ export default defineConfig({
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        skipWaiting: true,
+        clientsClaim: true
+      },
       manifest: {
-        name: 'Super Retro Platformer',
+        name: 'Super Platformer',
         short_name: 'Platformer',
-        theme_color: '#1a1a2e',
+        theme_color: '#0a0a1a',
         icons: [
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
           { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' }
