@@ -327,7 +327,8 @@ export class GameScene extends Phaser.Scene {
       if (this._comboCount > 1) {
         const bonus = Math.min(this._comboCount, 8) * 100
         this._addScore(bonus, enemy.x, enemy.y - 30, '#ff8800')
-        if (this._comboCount >= 2) this._showComboText(enemy.x, enemy.y)
+        this._showComboText(enemy.x, enemy.y)
+        audio.play('combo')
       }
     } else {
       this._comboCount = 0
