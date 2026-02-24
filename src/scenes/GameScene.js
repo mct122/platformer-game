@@ -18,6 +18,7 @@ export class GameScene extends Phaser.Scene {
     this.coins = 0
     this.lives = this.registry.get('lives') ?? 3
     this._dead = false
+    this._comboCount = 0   // 連続踏みコンボ
 
     // 背景グラデーション
     this._buildBackground()
@@ -57,8 +58,8 @@ export class GameScene extends Phaser.Scene {
     this.events.on('playerGrow', () => this._emitHUD())
     // VFX イベント
     this.events.on('vfx_stomp',   (x, y, c) => this._fxStomp(x, y, c))
-    this.events.on('vfx_landing', (x, y)    => this._fxDust(x, y, 6))
-    this.events.on('vfx_damage',  ()         => this._fxDamageShake())
+    this.events.on('vfx_landing', (x, y)    => { this._fxDust(x, y, 6); this._comboCount = 0 })
+    this.events.on('vfx_damage',  ()         => { this._fxDamageShake(); this._comboCount = 0 })
     this.events.on('vfx_block',   (x, y)    => this._fxBlock(x, y))
 
     // ゴールフラグ
@@ -189,30 +190,38 @@ export class GameScene extends Phaser.Scene {
     // 敵
     this.enemies = this.physics.add.group({ classType: Phaser.Physics.Arcade.Sprite, runChildUpdate: false })
     const enemyList = [
+      // 序盤（遅め・通常）
       { type: 'goomba', x: 600,  y: GY },
       { type: 'goomba', x: 900,  y: GY },
       { type: 'koopa',  x: 1250, y: GY },
       { type: 'goomba', x: 1500, y: GY },
       { type: 'goomba', x: 1700, y: GY },
+      // 足場上に配置
+      { type: 'goomba', x: 720,  y: GY - 128 },
+      { type: 'goomba', x: 1120, y: GY - 96  },
+      // 中盤
       { type: 'koopa',  x: 2000, y: GY },
       { type: 'goomba', x: 2300, y: GY },
       { type: 'goomba', x: 2800, y: GY },
       { type: 'koopa',  x: 3200, y: GY },
       { type: 'goomba', x: 3500, y: GY },
       { type: 'goomba', x: 3600, y: GY },
+      // 足場上
+      { type: 'koopa',  x: 3430, y: GY - 96  },
+      // 終盤（速め）
       { type: 'koopa',  x: 3900, y: GY },
-      { type: 'goomba', x: 4200, y: GY },
-      { type: 'goomba', x: 4700, y: GY },
+      { type: 'goomba', x: 4200, y: GY, speed: 90 },
+      { type: 'goomba', x: 4700, y: GY, speed: 90 },
       { type: 'koopa',  x: 5000, y: GY },
-      { type: 'goomba', x: 5400, y: GY },
-      { type: 'goomba', x: 5700, y: GY },
+      { type: 'goomba', x: 5400, y: GY, speed: 110 },
+      { type: 'goomba', x: 5700, y: GY, speed: 110 },
       { type: 'koopa',  x: 5900, y: GY },
     ]
     this._goombaList = []
     this._koopaList  = []
-    enemyList.forEach(({ type, x, y }) => {
+    enemyList.forEach(({ type, x, y, speed }) => {
       if (type === 'goomba') {
-        const g = new Goomba(this, x, y - 18)
+        const g = new Goomba(this, x, y - 18, speed)
         this.enemies.add(g)
         this._goombaList.push(g)
       } else {
@@ -312,10 +321,28 @@ export class GameScene extends Phaser.Scene {
                      player.body.bottom < enemy.body.top + 24
 
     if (stomping) {
+      this._comboCount++
       enemy.stomp(player)
+      // コンボボーナス（2連続目から）
+      if (this._comboCount > 1) {
+        const bonus = Math.min(this._comboCount, 8) * 100
+        this._addScore(bonus, enemy.x, enemy.y - 30, '#ff8800')
+        if (this._comboCount >= 2) this._showComboText(enemy.x, enemy.y)
+      }
     } else {
+      this._comboCount = 0
       enemy.touchPlayer(player)
     }
+  }
+
+  _showComboText(x, y) {
+    const label = this._comboCount >= 5 ? '🔥 COMBO x' + this._comboCount
+                : 'COMBO x' + this._comboCount
+    const t = this.add.text(x, y - 50, label, {
+      fontFamily: '"Orbitron", monospace', fontSize: '16px',
+      color: '#ff8800', stroke: '#000', strokeThickness: 4
+    }).setDepth(25)
+    this.tweens.add({ targets: t, y: t.y - 40, alpha: 0, duration: 900, onComplete: () => t.destroy() })
   }
 
   _onPlayerBlockCollide(player, block) {
@@ -356,12 +383,14 @@ export class GameScene extends Phaser.Scene {
   // =====================================================
   //  スコア / HUD
   // =====================================================
-  _addScore(v) {
+  _addScore(v, tx, ty, color = '#ffe000') {
     this.score += v
     this._emitHUD()
     // フローティングスコアテキスト
-    const t = this.add.text(this.player.x, this.player.y - 30, `+${v}`, {
-      fontFamily: 'monospace', fontSize: '14px', color: '#ffe000',
+    const x = tx ?? this.player.x
+    const y = ty ?? (this.player.y - 30)
+    const t = this.add.text(x, y, `+${v}`, {
+      fontFamily: '"Orbitron", monospace', fontSize: '14px', color,
       stroke: '#000', strokeThickness: 3
     }).setDepth(20)
     this.tweens.add({ targets: t, y: t.y - 50, alpha: 0, duration: 700, onComplete: () => t.destroy() })
