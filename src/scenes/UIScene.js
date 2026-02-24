@@ -68,7 +68,17 @@ export class UIScene extends Phaser.Scene {
     this.input.keyboard.on('keydown-ESC', () => this._togglePause(game))
 
     // GameSceneイベント購読
-    game.events.on('updateHUD', d => this._updateHUD(d), this)
+    if (game) {
+      game.events.on('updateHUD', d => this._updateHUD(d), this)
+      this._gameScene = game
+    }
+  }
+
+  shutdown() {
+    if (this._gameScene) {
+      this._gameScene.events.off('updateHUD', null, this)
+      this._gameScene = null
+    }
   }
 
   _updateHUD({ score, coins, lives }) {
@@ -152,7 +162,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   _togglePause(game) {
-    if (!game || game._dead) return
+    const g = game ?? this._gameScene
+    if (!g || g._dead) return
+    game = g
+    if (!this.scene.isActive('GameScene')) return
     this._paused = !this._paused
     if (this._paused) {
       this.scene.pause('GameScene')

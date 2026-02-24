@@ -308,8 +308,8 @@ export class GameScene extends Phaser.Scene {
   _onPlayerEnemyOverlap(player, enemy) {
     if (player.isDead || enemy.isDead) return
 
-    const stomping = player.body.velocity.y > 50 &&
-                     player.body.bottom < enemy.body.top + 20
+    const stomping = player.body.velocity.y > 0 &&
+                     player.body.bottom < enemy.body.top + 24
 
     if (stomping) {
       enemy.stomp(player)
