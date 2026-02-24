@@ -62,17 +62,46 @@ export class CharSelectScene extends Phaser.Scene {
     container.add(accent)
 
     // キャラ名
-    const nameText = this.add.text(0, 52, char.name.toUpperCase(), {
+    const nameText = this.add.text(0, 46, char.name.toUpperCase(), {
       fontFamily: '"Orbitron", monospace', fontSize: '14px',
       fontStyle: 'bold', color: '#ffffff',
       stroke: '#000000', strokeThickness: 3
     }).setOrigin(0.5)
     container.add(nameText)
 
+    // タイプタグ
+    const tagHex = char.color.toString(16).padStart(6, '0')
+    const tagText = this.add.text(0, 63, char.tag ?? '', {
+      fontFamily: '"Orbitron", monospace', fontSize: '9px',
+      color: `#${tagHex}`, stroke: '#000000', strokeThickness: 2
+    }).setOrigin(0.5)
+    container.add(tagText)
+
+    // ステータスバー (SPEED / JUMP)
+    const stats = char.stats
+    const maxSpeed = 340, maxJump = 820
+    const speedPct = (stats?.speed ?? 260) / maxSpeed
+    const jumpPct  = Math.abs(stats?.jump ?? 690) / maxJump
+    const barW = W_CARD - 30
+    const barStartX = -(barW / 2)
+    const lblStyle = { fontFamily: '"Orbitron", monospace', fontSize: '8px', color: '#778899' }
+
+    // SPEED bar
+    const spdLbl  = this.add.text(barStartX, 76, 'SPD', lblStyle).setOrigin(0, 0.5)
+    const spdBg   = this.add.rectangle(barStartX + 22, 76, barW - 22, 5, 0x223355).setOrigin(0, 0.5)
+    const spdFill = this.add.rectangle(barStartX + 22, 76, (barW - 22) * speedPct, 5, char.color, 0.9).setOrigin(0, 0.5)
+    container.add([spdLbl, spdBg, spdFill])
+
+    // JUMP bar
+    const jmpLbl  = this.add.text(barStartX, 88, 'JMP', lblStyle).setOrigin(0, 0.5)
+    const jmpBg   = this.add.rectangle(barStartX + 22, 88, barW - 22, 5, 0x223355).setOrigin(0, 0.5)
+    const jmpFill = this.add.rectangle(barStartX + 22, 88, (barW - 22) * jumpPct, 5, char.color, 0.9).setOrigin(0, 0.5)
+    container.add([jmpLbl, jmpBg, jmpFill])
+
     // SELECT ラベル（非表示・ホバー時に出る）
-    const selectLabel = this.add.text(0, 78, 'SELECT', {
+    const selectLabel = this.add.text(0, 80, 'SELECT', {
       fontFamily: '"Orbitron", monospace', fontSize: '11px',
-      color: `#${char.color.toString(16).padStart(6, '0')}`,
+      color: `#${tagHex}`,
       stroke: '#000000', strokeThickness: 2
     }).setOrigin(0.5).setAlpha(0)
     container.add(selectLabel)

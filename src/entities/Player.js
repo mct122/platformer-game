@@ -1,5 +1,5 @@
 import { audio } from '../main.js'
-import { PLAYER_SIZE } from '../utils/GameData.js'
+import { PLAYER_SIZE, CHARACTERS } from '../utils/GameData.js'
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y, charIdx) {
@@ -15,16 +15,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.body.setMaxVelocityX(300)
     this.setDepth(10)
 
+    // キャラクター固有ステータス
+    const s = CHARACTERS[charIdx]?.stats ?? CHARACTERS[0].stats
+
     // 移動パラメータ
-    this.WALK_SPEED = 260
-    this.ACCEL = 1400
+    this.WALK_SPEED = s.speed
+    this.ACCEL = s.accel
     this.DRAG = 900
 
     // ジャンプパラメータ
-    this.JUMP_VEL = -690
+    this.JUMP_VEL = s.jump
     this.COYOTE_TIME = 0.12
     this.JUMP_BUFFER = 0.12
-    this.FALL_MULTI = 1.8
+    this.FALL_MULTI = s.fallMulti
     this.LOW_JUMP_MULTI = 2.8
 
     // タイマー
