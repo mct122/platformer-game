@@ -35,6 +35,7 @@ export class BootScene extends Phaser.Scene {
     this._makePipeTextures()
     this._makeCloudTexture()
     this._makeHillTexture()
+    this._makeParticleTextures()
 
     // 各キャラの円形テクスチャを事前生成（選択画面用・プレイヤー用）
     CHARACTERS.forEach((c, i) => {
@@ -159,6 +160,41 @@ export class BootScene extends Phaser.Scene {
     g.fillEllipse(100, 70, 180, 70)
     g.generateTexture('hill', 200, 90)
     g.destroy()
+  }
+
+  /** パーティクル用テクスチャ群 */
+  _makeParticleTextures() {
+    // 星パーティクル（踏みつけ・コイン用）
+    const star = this.make.graphics({ add: false })
+    star.fillStyle(0xffffff)
+    star.fillTriangle(8, 0, 12, 6, 4, 6)   // 上
+    star.fillTriangle(8, 16, 12, 10, 4, 10) // 下
+    star.fillTriangle(0, 8, 6, 4, 6, 12)   // 左
+    star.fillTriangle(16, 8, 10, 4, 10, 12) // 右
+    star.generateTexture('particle_star', 16, 16)
+    star.destroy()
+
+    // 丸パーティクル（汎用）
+    const circle = this.make.graphics({ add: false })
+    circle.fillStyle(0xffffff)
+    circle.fillCircle(5, 5, 5)
+    circle.generateTexture('particle_circle', 10, 10)
+    circle.destroy()
+
+    // ほこりパーティクル（着地・走り用）
+    const dust = this.make.graphics({ add: false })
+    dust.fillStyle(0xe8d8b0, 0.9)
+    dust.fillCircle(6, 6, 6)
+    dust.generateTexture('particle_dust', 12, 12)
+    dust.destroy()
+
+    // スパーク（シェル・ブロック用）
+    const spark = this.make.graphics({ add: false })
+    spark.fillStyle(0xffffff)
+    spark.fillRect(0, 3, 10, 4)
+    spark.fillRect(3, 0, 4, 10)
+    spark.generateTexture('particle_spark', 10, 10)
+    spark.destroy()
   }
 
   /** 写真を円形にクリップしたテクスチャを生成 */
