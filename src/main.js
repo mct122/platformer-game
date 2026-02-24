@@ -4,6 +4,8 @@ import { TitleScene } from './scenes/TitleScene.js'
 import { CharSelectScene } from './scenes/CharSelectScene.js'
 import { GameScene } from './scenes/GameScene.js'
 import { UIScene } from './scenes/UIScene.js'
+import { GameOverScene } from './scenes/GameOverScene.js'
+import { StageClearScene } from './scenes/StageClearScene.js'
 import { AudioManager } from './utils/AudioManager.js'
 
 // グローバルオーディオマネージャー (シーン間で共有)
@@ -26,7 +28,7 @@ const config = {
       debug: false
     }
   },
-  scene: [BootScene, TitleScene, CharSelectScene, GameScene, UIScene]
+  scene: [BootScene, TitleScene, CharSelectScene, GameScene, UIScene, GameOverScene, StageClearScene]
 }
 
 new Phaser.Game(config)
