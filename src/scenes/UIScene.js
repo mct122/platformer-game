@@ -46,6 +46,17 @@ export class UIScene extends Phaser.Scene {
     this.add.text(W - 16, 6, 'LIVES', labelStyle).setOrigin(1, 0)
     this.livesText = this.add.text(W - 16, 18, '♥ ♥ ♥', scoreStyle).setOrigin(1, 0)
 
+    // 進行度バー（HUDバー下端）
+    const progBgW = Math.floor(W * 0.38)
+    const progX = W / 2
+    const progY = 43
+    this.add.text(progX, progY - 12, 'PROGRESS', { ...labelStyle, fontSize: '9px' }).setOrigin(0.5, 1)
+    this.add.rectangle(progX, progY, progBgW + 2, 7, 0x223355).setOrigin(0.5, 0)
+    this._progBg = this.add.rectangle(progX - progBgW / 2, progY, 0, 5, 0x00d4ff, 0.9).setOrigin(0, 0)
+    this._progW = progBgW
+    // ゴールフラグ
+    this.add.text(progX + progBgW / 2 + 4, progY - 1, '⚑', { fontSize: '10px', color: '#ffd700' }).setOrigin(0, 0.5)
+
     // サウンドトグル
     this._sndBtn = this.add.text(W - 52, 6, '🔊', { fontSize: '18px' })
       .setOrigin(1, 0).setInteractive({ cursor: 'pointer' })
@@ -81,13 +92,18 @@ export class UIScene extends Phaser.Scene {
     }
   }
 
-  _updateHUD({ score, coins, lives }) {
+  _updateHUD({ score, coins, lives, x, goalX }) {
     this.scoreText.setText(String(score).padStart(6, '0'))
     this.coinText.setText(`🪙 ${String(coins).padStart(2, '0')}`)
     // ライフをハートで表示（最大5まで）
     const hearts = '♥'.repeat(Math.max(0, Math.min(lives, 5)))
     const empties = '♡'.repeat(Math.max(0, 5 - Math.min(lives, 5)))
     this.livesText.setText(hearts + empties)
+    // 進行度バー更新
+    if (this._progBg && goalX > 0) {
+      const pct = Math.min(1, Math.max(0, x / goalX))
+      this._progBg.setSize(pct * this._progW, 5)
+    }
   }
 
   // =====================================================
