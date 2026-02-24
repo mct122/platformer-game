@@ -39,6 +39,10 @@ export class AudioManager {
     if (this.ctx.state === 'suspended') this.ctx.resume()
   }
 
+  pause() {
+    if (this.ctx.state === 'running') this.ctx.suspend()
+  }
+
   toggleMute() {
     this.muted = !this.muted
     this.master.gain.setTargetAtTime(this.muted ? 0 : 0.4, this.ctx.currentTime, 0.1)
