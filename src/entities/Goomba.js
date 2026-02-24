@@ -1,14 +1,14 @@
 import { audio } from '../main.js'
 
 export class Goomba extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene, x, y) {
+  constructor(scene, x, y, speed = 60) {
     super(scene, x, y, 'enemy')
     scene.add.existing(this)
     scene.physics.add.existing(this)
     this.setDisplaySize(36, 36)
     this.body.setSize(32, 32)
     this.setDepth(5)
-    this.speed = 60
+    this.speed = speed
     this.isDead = false
     this._deadTimer = 0
     this.body.setVelocityX(-this.speed)
