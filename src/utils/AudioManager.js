@@ -89,44 +89,95 @@ export class AudioManager {
     this._bgmTimer = setTimeout(() => this._scheduleBGM(), 25)
   }
 
+  // ノイズバースト（ドラム系）
+  _noise(time, dur, vol = 0.15) {
+    const buf = this.ctx.createBuffer(1, this.ctx.sampleRate * dur, this.ctx.sampleRate)
+    const data = buf.getChannelData(0)
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1
+    const src = this.ctx.createBufferSource()
+    const gain = this.ctx.createGain()
+    src.buffer = buf
+    gain.gain.setValueAtTime(vol, time)
+    gain.gain.exponentialRampToValueAtTime(0.001, time + dur)
+    src.connect(gain)
+    gain.connect(this.master)
+    src.start(time)
+  }
+
   play(name) {
     this.resume()
     const t = this.ctx.currentTime
     switch (name) {
       case 'jump':
-        this._tone(150, t, 0.05, 'square', 0.2)
-        this._tone(400, t + 0.05, 0.08, 'square', 0.15)
+        // ビョーンと上昇する音
+        this._tone(200, t, 0.04, 'square', 0.18)
+        this._tone(500, t + 0.04, 0.1, 'square', 0.13)
         break
       case 'stomp':
-        this._tone(300, t, 0.04, 'square', 0.2)
-        this._tone(150, t + 0.04, 0.06, 'square', 0.15)
+        // ドスっと踏む音
+        this._noise(t, 0.04, 0.25)
+        this._tone(200, t, 0.06, 'square', 0.18)
         break
       case 'coin':
-        this._tone(1200, t, 0.06, 'sine', 0.2)
-        this._tone(1600, t + 0.06, 0.1, 'sine', 0.15)
+        // チリンと高い音
+        this._tone(1400, t, 0.04, 'sine', 0.22)
+        this._tone(1760, t + 0.05, 0.12, 'sine', 0.16)
         break
       case 'powerup':
-        [261.6, 329.6, 392.0, 523.3].forEach((f, i) => {
-          this._tone(f, t + i * 0.08, 0.1, 'square', 0.15)
+        // 上昇アルペジオ
+        [261.6, 329.6, 392.0, 523.3, 659.3].forEach((f, i) => {
+          this._tone(f, t + i * 0.07, 0.1, 'square', 0.13)
         })
         break
       case 'damage':
-        this._tone(440, t, 0.05, 'sawtooth', 0.2)
-        this._tone(220, t + 0.05, 0.1, 'sawtooth', 0.15)
+        // ビリビリするダメージ音
+        this._tone(440, t,       0.06, 'sawtooth', 0.22)
+        this._tone(330, t + 0.06, 0.06, 'sawtooth', 0.18)
+        this._tone(220, t + 0.12, 0.1,  'sawtooth', 0.14)
         break
       case 'death':
-        this._tone(440, t, 0.08, 'sawtooth', 0.25)
+        // ズズズーンと落下
+        this._tone(440, t,       0.08, 'sawtooth', 0.25)
         this._tone(300, t + 0.08, 0.08, 'sawtooth', 0.2)
-        this._tone(200, t + 0.16, 0.1, 'sawtooth', 0.15)
-        this._tone(100, t + 0.26, 0.2, 'sawtooth', 0.1)
+        this._tone(200, t + 0.16, 0.1,  'sawtooth', 0.15)
+        this._tone(100, t + 0.26, 0.25, 'sawtooth', 0.1)
         break
       case 'block':
-        this._tone(220, t, 0.05, 'square', 0.2)
+        // コツンとブロックに当たる
+        this._noise(t, 0.03, 0.18)
+        this._tone(280, t, 0.07, 'square', 0.18)
         break
       case 'clear':
-        [523.3, 659.3, 783.9, 1046.5].forEach((f, i) => {
-          this._tone(f, t + i * 0.1, 0.15, 'sine', 0.18)
+        // ファンファーレ
+        [523.3, 659.3, 783.9, 1046.5, 1318.5].forEach((f, i) => {
+          this._tone(f, t + i * 0.09, 0.18, 'sine', 0.18)
         })
+        break
+      case 'shell':
+        // シェルを蹴る金属音
+        this._tone(800, t,       0.03, 'sawtooth', 0.2)
+        this._tone(400, t + 0.03, 0.05, 'sawtooth', 0.15)
+        break
+      case 'combo':
+        // コンボ達成の上昇音
+        this._tone(600, t,       0.04, 'sine', 0.18)
+        this._tone(900, t + 0.04, 0.06, 'sine', 0.15)
+        break
+      case 'fall':
+        // 穴に落ちる風切り音
+        this._tone(400, t, 0.3, 'sine', 0.12)
+        // 周波数を下げながら
+        const osc = this.ctx.createOscillator()
+        const gain = this.ctx.createGain()
+        osc.type = 'sine'
+        osc.frequency.setValueAtTime(400, t)
+        osc.frequency.exponentialRampToValueAtTime(80, t + 0.4)
+        gain.gain.setValueAtTime(0.12, t)
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4)
+        osc.connect(gain)
+        gain.connect(this.master)
+        osc.start(t)
+        osc.stop(t + 0.4)
         break
     }
   }
