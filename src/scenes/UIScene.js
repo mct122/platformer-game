@@ -5,96 +5,148 @@ export class UIScene extends Phaser.Scene {
   constructor() { super({ key: 'UIScene', active: false }) }
 
   create() {
-    const { width, height } = this.scale
+    const W = this.scale.width
+    const H = this.scale.height
     const game = this.scene.get('GameScene')
 
     this._paused = false
 
-    // --- HUD パネル（半透明バー） ---
-    this.add.rectangle(width / 2, 22, width, 44, 0x000000, 0.45).setScrollFactor(0)
+    // =====================================================
+    //  HUD バー（上部）
+    // =====================================================
+    // グラデーション風バー
+    const hudBg = this.add.graphics()
+    hudBg.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.8, 0.8, 0, 0)
+    hudBg.fillRect(0, 0, W, 50)
 
-    const style = {
-      fontFamily: 'monospace', fontSize: '15px', color: '#ffffff',
-      stroke: '#000', strokeThickness: 3
+    const scoreStyle = {
+      fontFamily: '"Orbitron", monospace',
+      fontSize: '17px',
+      color: '#ffffff',
+      stroke: '#000011',
+      strokeThickness: 4
     }
-    this.scoreText = this.add.text(16, 12, 'SCORE  000000', style)
-    this.coinText  = this.add.text(width / 2, 22, '🪙 00', style).setOrigin(0.5)
-    this.livesText = this.add.text(width - 100, 12, '♥ 3', style)
+    const labelStyle = {
+      fontFamily: '"Orbitron", monospace',
+      fontSize: '10px',
+      color: '#aabbff',
+      stroke: '#000011',
+      strokeThickness: 2
+    }
 
-    // ポーズボタン（右上）
-    const pauseBtn = this.add.text(width - 16, 12, '⏸', { fontSize: '22px' })
-      .setOrigin(1, 0).setInteractive({ cursor: 'pointer' })
-    pauseBtn.on('pointerdown', () => this._togglePause(game))
+    // SCORE
+    this.add.text(16, 6, 'SCORE', labelStyle)
+    this.scoreText = this.add.text(16, 18, '000000', scoreStyle)
+
+    // COINS（中央）
+    this.add.text(W / 2, 6, 'COINS', labelStyle).setOrigin(0.5, 0)
+    this.coinText = this.add.text(W / 2, 18, '🪙 00', scoreStyle).setOrigin(0.5, 0)
+
+    // LIVES（右）
+    this.add.text(W - 16, 6, 'LIVES', labelStyle).setOrigin(1, 0)
+    this.livesText = this.add.text(W - 16, 18, '♥ ♥ ♥', scoreStyle).setOrigin(1, 0)
 
     // サウンドトグル
-    const sndBtn = this.add.text(width - 50, 12, '🔊', { fontSize: '18px' })
+    this._sndBtn = this.add.text(W - 52, 6, '🔊', { fontSize: '18px' })
       .setOrigin(1, 0).setInteractive({ cursor: 'pointer' })
-    sndBtn.on('pointerdown', () => {
+    this._sndBtn.on('pointerdown', () => {
       const m = audio.toggleMute()
-      sndBtn.setText(m ? '🔇' : '🔊')
+      this._sndBtn.setText(m ? '🔇' : '🔊')
     })
 
-    // --- キーボードポーズ (P / Escape) ---
-    this.input.keyboard.on('keydown-P',      () => this._togglePause(game))
-    this.input.keyboard.on('keydown-ESC',    () => this._togglePause(game))
+    // ポーズボタン
+    this._buildPauseBtn(W, H, game)
 
-    // --- ポーズオーバーレイ（初期は非表示） ---
-    this._buildPauseOverlay(width, height, game)
+    // ポーズオーバーレイ
+    this._buildPauseOverlay(W, H, game)
 
-    // --- モバイルタッチボタン ---
-    this._setupTouchControls(width, height, game)
+    // タッチコントロール
+    this._setupTouchControls(W, H, game)
 
-    // --- GameScene のイベントを購読 ---
+    // キーボードポーズ
+    this.input.keyboard.on('keydown-P',   () => this._togglePause(game))
+    this.input.keyboard.on('keydown-ESC', () => this._togglePause(game))
+
+    // GameSceneイベント購読
     game.events.on('updateHUD', d => this._updateHUD(d), this)
   }
 
   _updateHUD({ score, coins, lives }) {
-    this.scoreText.setText(`SCORE  ${String(score).padStart(6, '0')}`)
+    this.scoreText.setText(String(score).padStart(6, '0'))
     this.coinText.setText(`🪙 ${String(coins).padStart(2, '0')}`)
-    this.livesText.setText(`♥ ${lives}`)
+    // ライフをハートで表示（最大5まで）
+    const hearts = '♥'.repeat(Math.max(0, Math.min(lives, 5)))
+    const empties = '♡'.repeat(Math.max(0, 5 - Math.min(lives, 5)))
+    this.livesText.setText(hearts + empties)
   }
 
   // =====================================================
-  //  ポーズ
+  //  ポーズボタン
+  // =====================================================
+  _buildPauseBtn(W, H, game) {
+    const btn = this.add.text(W - 16, H - 16, '⏸', {
+      fontFamily: '"Orbitron", monospace',
+      fontSize: '20px',
+      color: '#ffffff',
+      backgroundColor: '#00000066',
+      padding: { x: 8, y: 6 }
+    }).setOrigin(1, 1).setInteractive({ cursor: 'pointer' }).setDepth(50)
+    btn.on('pointerdown', () => this._togglePause(game))
+  }
+
+  // =====================================================
+  //  ポーズオーバーレイ
   // =====================================================
   _buildPauseOverlay(W, H, game) {
     this._pauseGroup = this.add.group()
 
-    const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.7)
-      .setDepth(200)
+    // 背景
+    const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.78).setDepth(200)
 
-    const title = this.add.text(W / 2, H / 2 - 80, 'PAUSED', {
-      fontFamily: 'monospace', fontSize: '40px', color: '#ffe000',
-      stroke: '#000', strokeThickness: 6
+    // タイトル
+    const title = this.add.text(W / 2, H / 2 - 100, 'PAUSED', {
+      fontFamily: '"Orbitron", monospace',
+      fontSize: '42px',
+      fontStyle: 'bold',
+      color: '#00d4ff',
+      stroke: '#003366',
+      strokeThickness: 6
     }).setOrigin(0.5).setDepth(201)
 
-    const resumeBtn = this._makePauseBtn(W / 2, H / 2, '▶  RESUME', () => this._togglePause(game))
-    const retryBtn  = this._makePauseBtn(W / 2, H / 2 + 60, '↺  RETRY', () => {
+    // セパレーター
+    const sep = this.add.rectangle(W / 2, H / 2 - 58, 220, 2, 0x00d4ff, 0.5).setDepth(201)
+
+    const resumeBtn = this._makePauseBtn(W / 2, H / 2 - 10, '▶  RESUME', 0x00aa44, () => this._togglePause(game))
+    const retryBtn  = this._makePauseBtn(W / 2, H / 2 + 55, '↺  RETRY',  0x336699, () => {
       this._hidePause()
       this.scene.stop('UIScene')
       this.scene.stop('GameScene')
       this.scene.start('GameScene')
       this.scene.launch('UIScene')
     })
-    const titleBtn  = this._makePauseBtn(W / 2, H / 2 + 120, '⌂  TITLE', () => {
+    const titleBtn = this._makePauseBtn(W / 2, H / 2 + 120, '⌂  TITLE', 0x663344, () => {
       this.scene.stop('UIScene')
       this.scene.stop('GameScene')
       this.scene.start('TitleScene')
     })
 
-    this._pauseGroup.addMultiple([overlay, title, resumeBtn, retryBtn, titleBtn])
+    this._pauseGroup.addMultiple([overlay, title, sep, resumeBtn, retryBtn, titleBtn])
     this._pauseGroup.setVisible(false)
   }
 
-  _makePauseBtn(x, y, label, cb) {
+  _makePauseBtn(x, y, label, bgColor, cb) {
     const btn = this.add.text(x, y, label, {
-      fontFamily: 'monospace', fontSize: '22px', color: '#ffffff',
-      backgroundColor: '#333366',
-      padding: { x: 28, y: 12 },
-      stroke: '#000', strokeThickness: 3
+      fontFamily: '"Orbitron", monospace',
+      fontSize: '18px',
+      color: '#ffffff',
+      backgroundColor: `#${bgColor.toString(16).padStart(6, '0')}cc`,
+      padding: { x: 32, y: 14 },
+      stroke: '#000000',
+      strokeThickness: 2
     }).setOrigin(0.5).setInteractive({ cursor: 'pointer' }).setDepth(201)
-    btn.on('pointerover',  () => btn.setStyle({ backgroundColor: '#5555aa' }))
-    btn.on('pointerout',   () => btn.setStyle({ backgroundColor: '#333366' }))
+
+    btn.on('pointerover',  () => btn.setAlpha(0.85))
+    btn.on('pointerout',   () => btn.setAlpha(1))
     btn.on('pointerdown',  cb)
     return btn
   }
@@ -123,26 +175,23 @@ export class UIScene extends Phaser.Scene {
   // =====================================================
   _setupTouchControls(W, H, game) {
     const p = () => game?.player
+    const R = 36  // ボタン半径
 
-    // 左側: 方向ボタン（円形）
-    const lx = 60, rx = 150, by = H - 55
-    this._btnL = this._makeCircleBtn('◀', lx, by, 44, 0x333333)
-    this._btnR = this._makeCircleBtn('▶', rx, by, 44, 0x333333)
+    // 左右ボタン（左下）
+    this._btnL = this._makeCircleBtn('◀', 55,       H - 65, R, 0x1a1a4a)
+    this._btnR = this._makeCircleBtn('▶', 55 + R*2 + 18, H - 65, R, 0x1a1a4a)
 
-    // 右側: ジャンプボタン（大きめ・青）
-    this._btnJ = this._makeCircleBtn('▲', W - 70, by, 50, 0x224488)
+    // ジャンプボタン（右下・大きめ）
+    this._btnJ = this._makeCircleBtn('▲', W - 65, H - 65, R + 6, 0x1a3a5a)
 
-    // 左ボタン
     this._bindBtn(this._btnL,
       () => { if (p()) p().touch.left  = true },
       () => { if (p()) p().touch.left  = false }
     )
-    // 右ボタン
     this._bindBtn(this._btnR,
       () => { if (p()) p().touch.right = true },
       () => { if (p()) p().touch.right = false }
     )
-    // ジャンプボタン
     this._bindBtn(this._btnJ,
       () => { if (p()) { p().touch.jump = true; p().triggerJump() } },
       () => { if (p()) p().touch.jump = false }
@@ -150,13 +199,21 @@ export class UIScene extends Phaser.Scene {
   }
 
   _makeCircleBtn(label, x, y, r, color) {
-    // 背景円
-    const circle = this.add.circle(x, y, r, color, 0.55)
-      .setScrollFactor(0).setDepth(100).setInteractive()
+    // 外枠
+    const ring = this.add.circle(x, y, r + 3, 0x4488ff, 0.3)
+      .setScrollFactor(0).setDepth(100)
+    // 背景
+    const circle = this.add.circle(x, y, r, color, 0.7)
+      .setScrollFactor(0).setDepth(101).setInteractive()
     // ラベル
     this.add.text(x, y, label, {
-      fontFamily: 'monospace', fontSize: '22px', color: '#ffffff'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(101)
+      fontFamily: '"Orbitron", monospace',
+      fontSize: `${Math.floor(r * 0.7)}px`,
+      color: '#ffffff'
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(102)
+
+    // ring も circle と同じインタラクションにするために circle を返す
+    circle._ring = ring
     return circle
   }
 
@@ -165,9 +222,8 @@ export class UIScene extends Phaser.Scene {
     obj.on('pointerup',     up)
     obj.on('pointerout',    up)
     obj.on('pointercancel', up)
-    // 押下フィードバック
-    obj.on('pointerdown', () => obj.setAlpha(0.9))
-    obj.on('pointerup',   () => obj.setAlpha(0.55))
-    obj.on('pointerout',  () => obj.setAlpha(0.55))
+    obj.on('pointerdown', () => { obj.setAlpha(1.0); obj._ring?.setAlpha(0.8) })
+    obj.on('pointerup',   () => { obj.setAlpha(0.7); obj._ring?.setAlpha(0.3) })
+    obj.on('pointerout',  () => { obj.setAlpha(0.7); obj._ring?.setAlpha(0.3) })
   }
 }
