@@ -1,4 +1,5 @@
 import { audio } from '../main.js'
+import { CHARACTERS } from '../utils/GameData.js'
 
 /** HUD + モバイルタッチコントロール + ポーズ */
 export class UIScene extends Phaser.Scene {
@@ -10,62 +11,72 @@ export class UIScene extends Phaser.Scene {
     const game = this.scene.get('GameScene')
 
     this._paused = false
+    this._timerFlashing = false
 
     // =====================================================
-    //  HUD バー（上部）
+    //  HUD バー（NSMB スタイル）
     // =====================================================
-    // グラデーション風バー
+    // 半透明ダークバー（上部）
     const hudBg = this.add.graphics()
-    hudBg.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0.8, 0.8, 0, 0)
-    hudBg.fillRect(0, 0, W, 50)
+    hudBg.fillStyle(0x000000, 0.72)
+    hudBg.fillRect(0, 0, W, 52)
+    // 下端ライン
+    hudBg.lineStyle(1, 0x224466, 0.6)
+    hudBg.lineBetween(0, 52, W, 52)
 
-    const scoreStyle = {
+    const labelStyle = {
       fontFamily: '"Orbitron", monospace',
-      fontSize: '17px',
+      fontSize: '9px',
+      color: '#7799bb',
+      stroke: '#000011',
+      strokeThickness: 2
+    }
+    const valueStyle = {
+      fontFamily: '"Orbitron", monospace',
+      fontSize: '19px',
+      fontStyle: 'bold',
       color: '#ffffff',
       stroke: '#000011',
       strokeThickness: 4
     }
-    const labelStyle = {
+
+    // ─── 左ゾーン: キャラ名 + スコア ─────────────────
+    const charIdx = this.registry.get('charIndex') ?? 0
+    const charName = CHARACTERS[charIdx]?.name?.toUpperCase() ?? 'PLAYER'
+    this.add.text(14, 5, charName, { ...labelStyle, color: '#aaddff' })
+    this.scoreText = this.add.text(14, 16, '000000', { ...valueStyle, fontSize: '21px' })
+
+    // ─── 中央ゾーン: コイン + ライフ ─────────────────
+    // ★ × コイン数
+    this.add.text(W / 2 - 6, 5, 'COINS', labelStyle).setOrigin(0.5, 0)
+    this.coinText = this.add.text(W / 2, 16, '★ ×00', {
+      ...valueStyle, fontSize: '18px', color: '#FFD700'
+    }).setOrigin(0.5, 0)
+
+    // ライフ（ハート表示）
+    this.livesText = this.add.text(W / 2, 36, '♥♥♥', {
       fontFamily: '"Orbitron", monospace',
-      fontSize: '10px',
-      color: '#aabbff',
+      fontSize: '13px',
+      color: '#ff6677',
       stroke: '#000011',
-      strokeThickness: 2
-    }
+      strokeThickness: 3
+    }).setOrigin(0.5, 0)
 
-    // SCORE
-    this.add.text(16, 6, 'SCORE', labelStyle)
-    this.scoreText = this.add.text(16, 18, '000000', scoreStyle)
+    // ─── 右ゾーン: TIME カウントダウン ───────────────
+    this.add.text(W - 14, 5, 'TIME', { ...labelStyle, color: '#aaddff' }).setOrigin(1, 0)
+    this.timeText = this.add.text(W - 14, 16, '300', {
+      ...valueStyle, fontSize: '23px'
+    }).setOrigin(1, 0)
 
-    // COINS（中央）
-    this.add.text(W / 2, 6, 'COINS', labelStyle).setOrigin(0.5, 0)
-    this.coinText = this.add.text(W / 2, 18, '🪙 00', scoreStyle).setOrigin(0.5, 0)
-
-    // LIVES（右）
-    this.add.text(W - 16, 6, 'LIVES', labelStyle).setOrigin(1, 0)
-    this.livesText = this.add.text(W - 16, 18, '♥ ♥ ♥', scoreStyle).setOrigin(1, 0)
-
-    // 進行度バー（HUDバー下端）
-    const progBgW = Math.floor(W * 0.38)
-    const progX = W / 2
-    const progY = 43
-    this.add.text(progX, progY - 12, 'PROGRESS', { ...labelStyle, fontSize: '9px' }).setOrigin(0.5, 1)
-    this.add.rectangle(progX, progY, progBgW + 2, 7, 0x223355).setOrigin(0.5, 0)
-    this._progBg = this.add.rectangle(progX - progBgW / 2, progY, 0, 5, 0x00d4ff, 0.9).setOrigin(0, 0)
-    this._progW = progBgW
-    // ゴールフラグ
-    this.add.text(progX + progBgW / 2 + 4, progY - 1, '⚑', { fontSize: '10px', color: '#ffd700' }).setOrigin(0, 0.5)
-
-    // サウンドトグル
-    this._sndBtn = this.add.text(W - 52, 6, '🔊', { fontSize: '18px' })
+    // サウンドトグル（右端の TIME の左に配置）
+    this._sndBtn = this.add.text(W - 96, 5, '🔊', { fontSize: '16px' })
       .setOrigin(1, 0).setInteractive({ cursor: 'pointer' })
     this._sndBtn.on('pointerdown', () => {
       const m = audio.toggleMute()
       this._sndBtn.setText(m ? '🔇' : '🔊')
     })
 
-    // ポーズボタン
+    // ポーズボタン（フローティング右下）
     this._buildPauseBtn(W, H, game)
 
     // ポーズオーバーレイ
@@ -92,17 +103,34 @@ export class UIScene extends Phaser.Scene {
     }
   }
 
-  _updateHUD({ score, coins, lives, x, goalX }) {
+  _updateHUD({ score, coins, lives, timeLeft, timerLow }) {
+    // スコア
     this.scoreText.setText(String(score).padStart(6, '0'))
-    this.coinText.setText(`🪙 ${String(coins).padStart(2, '0')}`)
-    // ライフをハートで表示（最大5まで）
-    const hearts = '♥'.repeat(Math.max(0, Math.min(lives, 5)))
+
+    // コイン
+    this.coinText.setText(`★ ×${String(coins).padStart(2, '0')}`)
+
+    // ライフ（最大5ハート）
+    const hearts  = '♥'.repeat(Math.max(0, Math.min(lives, 5)))
     const empties = '♡'.repeat(Math.max(0, 5 - Math.min(lives, 5)))
     this.livesText.setText(hearts + empties)
-    // 進行度バー更新
-    if (this._progBg && goalX > 0) {
-      const pct = Math.min(1, Math.max(0, x / goalX))
-      this._progBg.setSize(pct * this._progW, 5)
+
+    // タイマー
+    const t = Math.max(0, timeLeft ?? 300)
+    this.timeText.setText(String(t).padStart(3, '0'))
+
+    // 残り30秒で赤く点滅
+    if (timerLow && !this._timerFlashing) {
+      this._timerFlashing = true
+      this.timeText.setColor('#ff3333')
+      this.tweens.add({
+        targets: this.timeText,
+        alpha: 0.25,
+        duration: 400,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.InOut'
+      })
     }
   }
 
@@ -126,10 +154,8 @@ export class UIScene extends Phaser.Scene {
   _buildPauseOverlay(W, H, game) {
     this._pauseGroup = this.add.group()
 
-    // 背景
     const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.78).setDepth(200)
 
-    // タイトル
     const title = this.add.text(W / 2, H / 2 - 100, 'PAUSED', {
       fontFamily: '"Orbitron", monospace',
       fontSize: '42px',
@@ -139,7 +165,6 @@ export class UIScene extends Phaser.Scene {
       strokeThickness: 6
     }).setOrigin(0.5).setDepth(201)
 
-    // セパレーター
     const sep = this.add.rectangle(W / 2, H / 2 - 58, 220, 2, 0x00d4ff, 0.5).setDepth(201)
 
     const resumeBtn = this._makePauseBtn(W / 2, H / 2 - 10, '▶  RESUME', 0x00aa44, () => this._togglePause(game))
@@ -206,12 +231,9 @@ export class UIScene extends Phaser.Scene {
     const p = () => game?.player
     const R = 36  // ボタン半径
 
-    // 左右ボタン（左下）
-    this._btnL = this._makeCircleBtn('◀', 55,       H - 65, R, 0x1a1a4a)
-    this._btnR = this._makeCircleBtn('▶', 55 + R*2 + 18, H - 65, R, 0x1a1a4a)
-
-    // ジャンプボタン（右下・大きめ）
-    this._btnJ = this._makeCircleBtn('▲', W - 65, H - 65, R + 6, 0x1a3a5a)
+    this._btnL = this._makeCircleBtn('◀', 55,           H - 65, R,     0x1a1a4a)
+    this._btnR = this._makeCircleBtn('▶', 55 + R*2 + 18, H - 65, R,     0x1a1a4a)
+    this._btnJ = this._makeCircleBtn('▲', W - 65,        H - 65, R + 6, 0x1a3a5a)
 
     this._bindBtn(this._btnL,
       () => { if (p()) p().touch.left  = true },
@@ -228,20 +250,16 @@ export class UIScene extends Phaser.Scene {
   }
 
   _makeCircleBtn(label, x, y, r, color) {
-    // 外枠
     const ring = this.add.circle(x, y, r + 3, 0x4488ff, 0.3)
       .setScrollFactor(0).setDepth(100)
-    // 背景
     const circle = this.add.circle(x, y, r, color, 0.7)
       .setScrollFactor(0).setDepth(101).setInteractive()
-    // ラベル
     this.add.text(x, y, label, {
       fontFamily: '"Orbitron", monospace',
       fontSize: `${Math.floor(r * 0.7)}px`,
       color: '#ffffff'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(102)
 
-    // ring も circle と同じインタラクションにするために circle を返す
     circle._ring = ring
     return circle
   }

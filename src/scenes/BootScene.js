@@ -67,6 +67,9 @@ export class BootScene extends Phaser.Scene {
     this._makeHillTexture()
     this._makeParticleTextures()
 
+    // コインテクスチャ
+    this._makeCoinTexture()
+
     // キャラクターのポートレートテクスチャを生成
     // 上半身フォーカス（顔〜胸元）をアバターとして切り出す
     CHARACTERS.forEach((c, i) => {
@@ -179,6 +182,25 @@ export class BootScene extends Phaser.Scene {
     g.lineStyle(2, 0xdddddd, 0.5)
     g.strokeEllipse(60, 40, 80, 50)
     g.generateTexture('cloud', 120, 70)
+    g.destroy()
+  }
+
+  /** コインテクスチャ（ゴールド円形） */
+  _makeCoinTexture() {
+    const g = this.make.graphics({ add: false })
+    // 外周（ゴールド）
+    g.fillStyle(0xFFCC00)
+    g.fillCircle(12, 12, 12)
+    // 内側ハイライト
+    g.fillStyle(0xFFE644)
+    g.fillEllipse(10, 10, 14, 14)
+    // 光点
+    g.fillStyle(0xFFFAA0)
+    g.fillCircle(8, 8, 3)
+    // 外枠
+    g.lineStyle(1.5, 0xCC9900, 0.9)
+    g.strokeCircle(12, 12, 11)
+    g.generateTexture('coin', 24, 24)
     g.destroy()
   }
 

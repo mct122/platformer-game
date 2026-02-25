@@ -1,6 +1,7 @@
 import { Player } from '../entities/Player.js'
 import { Goomba } from '../entities/Goomba.js'
 import { Koopa } from '../entities/Koopa.js'
+import { Coin } from '../entities/Coin.js'
 import { QuestionBlock } from '../objects/QuestionBlock.js'
 import { Mushroom } from '../objects/Item.js'
 import { audio } from '../main.js'
@@ -19,6 +20,8 @@ export class GameScene extends Phaser.Scene {
     this.lives = this.registry.get('lives') ?? 3
     this._dead = false
     this._comboCount = 0   // 連続踏みコンボ
+    this._timer = 300      // カウントダウンタイマー（秒）
+    this._timerLow = false // 30秒警告フラグ
 
     // 背景グラデーション
     this._buildBackground()
@@ -44,6 +47,8 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.qblocks, this._onPlayerBlockCollide, null, this)
     // プレイヤー vs キノコ
     this.physics.add.overlap(this.player, this.mushrooms, (p, m) => m.collect(p), null, this)
+    // プレイヤー vs ワールドコイン
+    this.physics.add.overlap(this.player, this.coinGroup, (_p, c) => c.collect(), null, this)
 
     // --- カメラ ---
     this.cameras.main.setBounds(0, 0, MAP_WIDTH, GH)
@@ -52,7 +57,12 @@ export class GameScene extends Phaser.Scene {
 
     // --- イベント ---
     this.events.on('addScore', v => this._addScore(v))
-    this.events.on('addCoin', () => { this.coins++; audio.play('coin'); this._addScore(200); this._emitHUD() })
+    this.events.on('addCoin', () => {
+      this.coins++
+      this.score += 200
+      audio.play('coin')
+      this._emitHUD()
+    })
     this.events.on('spawnMushroom', (x, y) => { this.mushrooms.add(new Mushroom(this, x, y), true) })
     this.events.on('playerDead', () => this._onDeath())
     this.events.on('playerGrow', () => this._emitHUD())
@@ -233,6 +243,9 @@ export class GameScene extends Phaser.Scene {
 
     // キノコ
     this.mushrooms = this.physics.add.group({ runChildUpdate: true })
+
+    // ワールドコイン
+    this._buildCoins()
   }
 
   /** 地面セグメントをタイルで描画 */
@@ -285,30 +298,38 @@ export class GameScene extends Phaser.Scene {
 
   _buildGoal() {
     this.goalX = MAP_WIDTH - 200
+    const px = this.goalX
+    const poleH = 320
+    const poleTopY = GY - poleH
 
-    // 旗ポール
-    this.add.rectangle(this.goalX, GY - 150, 6, 300, 0xcccccc)
-    // 旗
-    const flag = this.add.triangle(
-      this.goalX + 3, GY - 295,
-      this.goalX + 3, GY - 295,
-      this.goalX + 45, GY - 275,
-      this.goalX + 3, GY - 255,
+    // ポール（グレー縦棒）
+    this.add.rectangle(px, GY - poleH / 2, 8, poleH, 0xcccccc).setDepth(3)
+    this.add.rectangle(px - 2, GY - poleH / 2, 2, poleH, 0xffffff, 0.6).setDepth(3)
+
+    // 金球（ポール頂点）
+    this.add.circle(px, poleTopY, 16, 0xFFD700).setDepth(4)
+    this.add.circle(px - 5, poleTopY - 5, 7, 0xFFEE88).setDepth(4)
+
+    // 旗（ポール上部から右に伸びる三角形）
+    // origin: (px+4, poleTopY+20)、vertices はローカル座標
+    this._goalFlag = this.add.triangle(
+      px + 4, poleTopY + 20,
+      0, 0,      // 上端（ポール付き）
+      52, 22,    // 右先
+      0, 44,     // 下端
       0xff2020
-    )
-    // GOAL テキスト
-    this.add.text(this.goalX - 10, GY - 330, 'GOAL', {
-      fontFamily: 'monospace', fontSize: '20px', color: '#ffffff',
+    ).setDepth(3)
+    this._goalFlagDropTo = GY - 60  // フラグが着地するY座標
+
+    // 台座ブロック
+    this.add.rectangle(px, GY + 14, 28, 36, 0x997755).setDepth(3)
+
+    // GOAL テキスト（ポール上）
+    this.add.text(px, poleTopY - 28, 'GOAL', {
+      fontFamily: '"Orbitron", monospace', fontSize: '18px',
+      fontStyle: 'bold', color: '#FFD700',
       stroke: '#000000', strokeThickness: 4
-    }).setOrigin(0.5)
-
-    // 台座
-    this.add.rectangle(this.goalX, GY + 16, 24, 40, 0xaaaaaa)
-
-    // ゴール判定ゾーン
-    this.goalZone = this.add.zone(this.goalX, GY - 150, 60, 300)
-    this.physics.world.enable(this.goalZone)
-    this.goalZone.body.setAllowGravity(false)
+    }).setOrigin(0.5, 1).setDepth(5)
   }
 
   // =====================================================
@@ -364,6 +385,17 @@ export class GameScene extends Phaser.Scene {
     this._goombaList.forEach(g => { if (g.active) g.update(dt) })
     this._koopaList.forEach(k => { if (k.active) k.update(dt) })
 
+    // タイマーカウントダウン
+    this._timer -= delta / 1000
+    if (this._timer <= 0) {
+      this._timer = 0
+      if (!this.player.isDead) this.player.die()
+    }
+    // 残り30秒で警告フラグ（UISceneが赤点滅）
+    if (!this._timerLow && this._timer <= 30) {
+      this._timerLow = true
+    }
+
     // 穴落下判定
     if (this.player.y > GH + 100 && !this.player.isDead) {
       this.player.die()
@@ -375,10 +407,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     // HUD 更新
-    this.events.emit('updateHUD', {
-      score: this.score, coins: this.coins, lives: this.lives,
-      x: this.player.x, goalX: this.goalX
-    })
+    this._emitHUD()
   }
 
   // =====================================================
@@ -400,7 +429,9 @@ export class GameScene extends Phaser.Scene {
   _emitHUD() {
     this.events.emit('updateHUD', {
       score: this.score, coins: this.coins, lives: this.lives,
-      x: this.player.x, goalX: this.goalX
+      x: this.player.x, goalX: this.goalX,
+      timeLeft: Math.ceil(this._timer),
+      timerLow: this._timerLow
     })
   }
 
@@ -460,6 +491,67 @@ export class GameScene extends Phaser.Scene {
     } catch (_) {}
   }
 
+  // =====================================================
+  //  ワールドコイン配置
+  // =====================================================
+  _buildCoins() {
+    this.coinGroup = this.physics.add.group()
+
+    const coins = [
+      // 序盤：地面上コイン列
+      ...this._coinRow(280, GY - 64, 5),
+      ...this._coinRow(550, GY - 64, 4),
+      // プラットフォーム上
+      ...this._coinRow(490, GY - 160, 4),
+      ...this._coinRow(715, GY - 192, 5),
+      ...this._coinRow(910, GY - 256, 3),
+      ...this._coinRow(1115, GY - 128, 5),
+      // 中盤
+      ...this._coinRow(1370, GY - 192, 3),
+      ...this._coinRow(1620, GY - 128, 5),
+      ...this._coinRow(1920, GY - 160, 4),
+      ...this._coinRow(2130, GY - 225, 3),
+      ...this._coinRow(2220, GY - 128, 4),
+      // 第1ホール手前・アーク（x=2560〜2688）
+      ...this._coinArc(2520, GY - 72, 9, 100, 26),
+      // 第1ホール後
+      ...this._coinRow(2760, GY - 64, 4),
+      ...this._coinRow(2880, GY - 128, 3),
+      // 中盤後半
+      ...this._coinRow(3115, GY - 192, 4),
+      ...this._coinRow(3420, GY - 128, 5),
+      ...this._coinRow(3460, GY - 128, 5),
+      ...this._coinRow(3720, GY - 160, 3),
+      ...this._coinRow(3920, GY - 225, 3),
+      // 第2ホール手前・アーク（x=4480〜4608）
+      ...this._coinArc(4440, GY - 72, 9, 100, 26),
+      // 第2ホール後
+      ...this._coinRow(4760, GY - 64, 4),
+      ...this._coinRow(5030, GY - 192, 3),
+      ...this._coinRow(5330, GY - 128, 5),
+      // 終盤
+      ...this._coinRow(5640, GY - 64, 4),
+      ...this._coinRow(5960, GY - 96, 3),
+    ]
+
+    coins.forEach(([x, y]) => {
+      this.coinGroup.add(new Coin(this, x, y))
+    })
+  }
+
+  /** コインの横一列 [x, y][] */
+  _coinRow(startX, y, count, spacing = 28) {
+    return Array.from({ length: count }, (_, i) => [startX + i * spacing, y])
+  }
+
+  /** コインのアーチ（穴の上に弧を描く） [x, y][] */
+  _coinArc(startX, baseY, count, height = 80, spacing = 26) {
+    return Array.from({ length: count }, (_, i) => {
+      const t = i / (count - 1)  // 0→1
+      return [startX + i * spacing, baseY - Math.round(height * Math.sin(t * Math.PI))]
+    })
+  }
+
   _fxDamageShake() {
     this.cameras.main.shake(250, 0.006)
     // 画面を一瞬赤くフラッシュ
@@ -500,11 +592,21 @@ export class GameScene extends Phaser.Scene {
     audio.stopBGM()
     audio.play('clear')
 
-    // タイムボーナス算出（仮: スコア×0.1 まるめ）
-    const timeBonus = Math.floor(this.score * 0.1 / 50) * 50
+    // タイムボーナス：残り秒数 × 100pts
+    const timeBonus = Math.ceil(Math.max(0, this._timer)) * 100
     this.registry.set('lastScore', this.score + timeBonus)
 
-    this.cameras.main.fadeOut(1200, 255, 255, 255)
+    // 旗を下ろすアニメーション
+    if (this._goalFlag) {
+      this.tweens.add({
+        targets: this._goalFlag,
+        y: this._goalFlagDropTo,
+        duration: 800,
+        ease: 'Quad.In'
+      })
+    }
+
+    this.cameras.main.fadeOut(1400, 255, 255, 255)
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.stop('UIScene')
       this.scene.start('StageClearScene', { score: this.score, timeBonus })
