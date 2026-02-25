@@ -65,7 +65,7 @@ export class TitleScene extends Phaser.Scene {
     }).setOrigin(0.5)
 
     // バージョン
-    this.add.text(10, H - 18, 'v2.1', {
+    this.add.text(10, H - 18, 'v2.2', {
       fontFamily: '"Orbitron", monospace', fontSize: '10px', color: '#334455'
     })
 
