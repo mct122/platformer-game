@@ -250,28 +250,19 @@ export class BootScene extends Phaser.Scene {
     spark.destroy()
   }
 
-  /** 写真を円形にクリップしたテクスチャを生成 */
   /** ポートレートテクスチャを生成（上部を優先してクロップ） */
   _makePortraitTex(key, srcKey, w, h) {
-    const rt = this.add.renderTexture(0, 0, w, h).setVisible(false)
-
-    // 元画像のアスペクト比を維持して幅に合わせ、上からクロップ
+    // CanvasTexture を使う（RenderTexture だと visible=false で描画されないバグを回避）
     const srcTex = this.textures.get(srcKey).getSourceImage()
-    const srcAspect = srcTex.width / srcTex.height
+    const srcW = srcTex.naturalWidth || srcTex.width || 1
+    const srcH = srcTex.naturalHeight || srcTex.height || 1
+    const srcAspect = srcW / srcH
     const scaledH = Math.round(w / srcAspect)
 
-    const tmp = this.add.image(w / 2, 0, srcKey)
-      .setDisplaySize(w, scaledH)
-      .setOrigin(0.5, 0)
-      .setVisible(false)
-    rt.draw(tmp, 0, 0)
-    rt.saveTexture(key)
-    tmp.destroy()
-    rt.destroy()
-  }
-
-  /** 後方互換用（削除予定） */
-  _makeCircleTex(key, srcKey, size) {
-    this._makePortraitTex(key, srcKey, size, size)
+    const ct = this.textures.createCanvas(key, w, h)
+    const ctx = ct.getContext()
+    // 上から scaledH 高さで描画 → h を超える部分はキャンバスでクリップされる
+    ctx.drawImage(srcTex, 0, 0, srcW, srcH, 0, 0, w, scaledH)
+    ct.refresh()
   }
 }
