@@ -251,7 +251,6 @@ export class GameScene extends Phaser.Scene {
   /** 地面セグメントをタイルで描画 */
   _buildGroundSegment(sx, ex) {
     const w = ex - sx
-    const tileW = Math.ceil(w / TS)
 
     // 一番上の行：草付きタイル
     this.add.tileSprite(sx, GY, w, TS, 'tile_ground').setOrigin(0, 0)
@@ -259,10 +258,9 @@ export class GameScene extends Phaser.Scene {
     // 下の2行：土タイル
     this.add.tileSprite(sx, GY + TS, w, TS * 2, 'tile_soil').setOrigin(0, 0)
 
-    // 物理ボディ（地面全体）
-    const rect = this.add.rectangle(sx + w / 2, GY + TS, w, TS * 3)
-    this.physics.add.existing(rect, true)
-    this.ground.add(rect)
+    // 物理ボディ（staticGroup.create() で生成すれば refreshBody が確実に動く）
+    const body = this.ground.create(sx + w / 2, GY + TS, 'tile_ground')
+    body.setVisible(false).setDisplaySize(w, TS * 3).refreshBody()
   }
 
   /** 足場をレンガタイルで描画 */
@@ -270,9 +268,8 @@ export class GameScene extends Phaser.Scene {
     const w = tiles * TS
     this.add.tileSprite(x, y, w, TS, 'tile_brick').setOrigin(0, 0)
 
-    const rect = this.add.rectangle(x + w / 2, y + TS / 2, w, TS)
-    this.physics.add.existing(rect, true)
-    this.platforms.add(rect)
+    const body = this.platforms.create(x + w / 2, y + TS / 2, 'tile_brick')
+    body.setVisible(false).setDisplaySize(w, TS).refreshBody()
   }
 
   /** パイプを配置（ビジュアル + 物理ボディ） */
@@ -291,9 +288,8 @@ export class GameScene extends Phaser.Scene {
 
     // 物理ボディ
     const totalH = heightTiles * TS
-    const rect = this.add.rectangle(x + pipeW / 2, baseY - totalH / 2, pipeW, totalH)
-    this.physics.add.existing(rect, true)
-    this.platforms.add(rect)
+    const body = this.platforms.create(x + pipeW / 2, baseY - totalH / 2, 'tile_pipe_body')
+    body.setVisible(false).setDisplaySize(pipeW, totalH).refreshBody()
   }
 
   _buildGoal() {
