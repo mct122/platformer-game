@@ -28,7 +28,7 @@ export class GameScene extends Phaser.Scene {
 
     // --- プレイヤー ---
     const charIdx = this.registry.get('charIndex') ?? 0
-    this.player = new Player(this, 100, GY - 50, charIdx)
+    this.player = new Player(this, 100, GY - 55, charIdx)
 
     // --- 衝突設定 ---
     this.physics.add.collider(this.player, this.ground)
