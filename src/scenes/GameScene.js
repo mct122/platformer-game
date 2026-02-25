@@ -76,7 +76,7 @@ export class GameScene extends Phaser.Scene {
     this._buildGoal()
 
     // BGM
-    audio.startBGM()
+    // audio.startBGM()
 
     // HUD 初期化
     this._emitHUD()
