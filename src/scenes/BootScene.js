@@ -70,8 +70,10 @@ export class BootScene extends Phaser.Scene {
     // コインテクスチャ
     this._makeCoinTexture()
 
+    // 敵スプライト生成（enemy.png/koopa.pngの背景問題を回避）
+    this._makeEnemyTextures()
+
     // キャラクターのポートレートテクスチャを生成
-    // 上半身フォーカス（顔〜胸元）をアバターとして切り出す
     CHARACTERS.forEach((c, i) => {
       this._makePortraitTex(`avatar_${i}`, `char_normal_${i}`, 160, 220)
       this._makePortraitTex(`player_small_${i}`, `char_normal_${i}`, 90, 200)
@@ -250,19 +252,124 @@ export class BootScene extends Phaser.Scene {
     spark.destroy()
   }
 
-  /** ポートレートテクスチャを生成（上部を優先してクロップ） */
+  /**
+   * ポートレートテクスチャを生成。
+   * 画像内のキャラクター部分（白・透明以外のピクセル）を自動検出してクロップし、
+   * キャンバス全体に引き伸ばす。空白が多い画像でも正しく表示される。
+   */
   _makePortraitTex(key, srcKey, w, h) {
-    // CanvasTexture を使う（RenderTexture だと visible=false で描画されないバグを回避）
-    const srcTex = this.textures.get(srcKey).getSourceImage()
-    const srcW = srcTex.naturalWidth || srcTex.width || 1
-    const srcH = srcTex.naturalHeight || srcTex.height || 1
-    const srcAspect = srcW / srcH
-    const scaledH = Math.round(w / srcAspect)
+    const srcImg = this.textures.get(srcKey).getSourceImage()
+    const srcW = srcImg.naturalWidth || srcImg.width || 1
+    const srcH = srcImg.naturalHeight || srcImg.height || 1
+
+    let cropY = 0, cropH = srcH
+    try {
+      // 1/4 スケールの解析用キャンバスでコンテンツ領域を検出（高速化）
+      const sc = 0.25
+      const aw = Math.max(4, Math.round(srcW * sc))
+      const ah = Math.max(4, Math.round(srcH * sc))
+      const off = document.createElement('canvas')
+      off.width = aw; off.height = ah
+      const oc = off.getContext('2d')
+      oc.drawImage(srcImg, 0, 0, srcW, srcH, 0, 0, aw, ah)
+      const d = oc.getImageData(0, 0, aw, ah).data
+
+      // 白でも透明でもないピクセル = キャラクターの内容
+      const isChar = i => d[i + 3] > 20 && (d[i] < 230 || d[i + 1] < 230 || d[i + 2] < 230)
+
+      let top = 0, bot = ah - 1
+      outer: for (let y = 0; y < ah; y++) {
+        for (let x = 0; x < aw; x++) {
+          if (isChar((y * aw + x) * 4)) { top = y; break outer }
+        }
+      }
+      outer2: for (let y = ah - 1; y > top; y--) {
+        for (let x = 0; x < aw; x++) {
+          if (isChar((y * aw + x) * 4)) { bot = y; break outer2 }
+        }
+      }
+
+      cropY = Math.floor(top / sc)
+      cropH = Math.max(1, Math.ceil((bot - top + 1) / sc))
+      // 境界チェック
+      if (cropY + cropH > srcH) cropH = srcH - cropY
+    } catch (_) { /* フォールバック: 画像全体を使用 */ }
 
     const ct = this.textures.createCanvas(key, w, h)
-    const ctx = ct.getContext()
-    // 上から scaledH 高さで描画 → h を超える部分はキャンバスでクリップされる
-    ctx.drawImage(srcTex, 0, 0, srcW, srcH, 0, 0, w, scaledH)
+    ct.getContext().drawImage(srcImg, 0, cropY, srcW, cropH, 0, 0, w, h)
     ct.refresh()
+  }
+
+  /** 敵スプライトをプログラムで生成（画像の背景問題を回避） */
+  _makeEnemyTextures() {
+    // ── Goomba ────────────────────────────────────────────
+    const g = this.make.graphics({ add: false })
+    // 足（暗い茶色）
+    g.fillStyle(0x5a2000)
+    g.fillEllipse(14, 45, 16, 8)
+    g.fillEllipse(34, 45, 16, 8)
+    // 体（タン色）
+    g.fillStyle(0xc67c3a)
+    g.fillCircle(24, 34, 14)
+    // 帽子（暗い赤）
+    g.fillStyle(0x8b2500)
+    g.fillCircle(24, 18, 18)
+    g.fillStyle(0xcc3300)
+    g.fillCircle(22, 15, 13)
+    // 白い水玉
+    g.fillStyle(0xffffff)
+    g.fillCircle(14, 13, 4)
+    g.fillCircle(30, 10, 4)
+    g.fillCircle(24, 23, 3)
+    // 怒り眉
+    g.fillStyle(0x111111)
+    g.fillRect(12, 23, 10, 3)
+    g.fillRect(26, 23, 10, 3)
+    // 目
+    g.fillStyle(0x111111)
+    g.fillCircle(18, 30, 4)
+    g.fillCircle(30, 30, 4)
+    g.fillStyle(0xffffff)
+    g.fillCircle(17, 29, 2)
+    g.fillCircle(29, 29, 2)
+    g.generateTexture('enemy', 48, 48)
+    g.destroy()
+
+    // ── Koopa ──────────────────────────────────────────────
+    const k = this.make.graphics({ add: false })
+    // 靴（赤）
+    k.fillStyle(0xcc2200)
+    k.fillEllipse(14, 44, 18, 10)
+    k.fillEllipse(34, 44, 18, 10)
+    // 脚（黄色）
+    k.fillStyle(0xf5c500)
+    k.fillRect(11, 33, 10, 13)
+    k.fillRect(27, 33, 10, 13)
+    // 甲羅（濃い緑）
+    k.fillStyle(0x1a7a10)
+    k.fillEllipse(24, 27, 34, 30)
+    k.fillStyle(0x2da41c)
+    k.fillEllipse(24, 25, 26, 22)
+    // 甲羅の線
+    k.fillStyle(0x0d5a08)
+    k.fillRect(10, 18, 28, 2)
+    k.fillRect(23, 11, 2, 26)
+    // 体（黄色）
+    k.fillStyle(0xf5c500)
+    k.fillRect(7, 27, 34, 8)
+    // 頭
+    k.fillCircle(24, 16, 13)
+    k.fillStyle(0xffe066)
+    k.fillCircle(22, 14, 9)
+    // 目
+    k.fillStyle(0x111111)
+    k.fillCircle(20, 14, 4)
+    k.fillStyle(0xffffff)
+    k.fillCircle(19, 13, 2)
+    // 口
+    k.fillStyle(0x111111)
+    k.fillRect(22, 20, 6, 2)
+    k.generateTexture('koopa', 48, 48)
+    k.destroy()
   }
 }
