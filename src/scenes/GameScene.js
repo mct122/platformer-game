@@ -31,7 +31,7 @@ export class GameScene extends Phaser.Scene {
 
     // --- プレイヤー ---
     const charIdx = this.registry.get('charIndex') ?? 0
-    this.player = new Player(this, 100, GY - 55, charIdx)
+    this.player = new Player(this, 100, GY - 90, charIdx)
 
     // --- 衝突設定 ---
     this.physics.add.collider(this.player, this.ground)
@@ -258,9 +258,14 @@ export class GameScene extends Phaser.Scene {
     // 下の2行：土タイル
     this.add.tileSprite(sx, GY + TS, w, TS * 2, 'tile_soil').setOrigin(0, 0)
 
-    // 物理ボディ（staticGroup.create() で生成すれば refreshBody が確実に動く）
-    const body = this.ground.create(sx + w / 2, GY + TS, 'tile_ground')
-    body.setVisible(false).setDisplaySize(w, TS * 3).refreshBody()
+    // 物理ボディ：staticImage で正確なサイズを設定する
+    // center Y = GY + TS*3/2 → body.top = GY（視覚と一致）
+    const img = this.physics.add.staticImage(sx + w / 2, GY + TS * 3 / 2, 'tile_ground')
+    img.setVisible(false)
+    img.setDisplaySize(w, TS * 3)
+    img.body.setSize(w, TS * 3)  // テクスチャサイズ(32×32)ではなく実寸を設定
+    img.refreshBody()             // スプライト位置を元にボディを再配置
+    this.ground.add(img)
   }
 
   /** 足場をレンガタイルで描画 */
@@ -268,8 +273,12 @@ export class GameScene extends Phaser.Scene {
     const w = tiles * TS
     this.add.tileSprite(x, y, w, TS, 'tile_brick').setOrigin(0, 0)
 
-    const body = this.platforms.create(x + w / 2, y + TS / 2, 'tile_brick')
-    body.setVisible(false).setDisplaySize(w, TS).refreshBody()
+    const img = this.physics.add.staticImage(x + w / 2, y + TS / 2, 'tile_brick')
+    img.setVisible(false)
+    img.setDisplaySize(w, TS)
+    img.body.setSize(w, TS)
+    img.refreshBody()
+    this.platforms.add(img)
   }
 
   /** パイプを配置（ビジュアル + 物理ボディ） */
@@ -286,10 +295,14 @@ export class GameScene extends Phaser.Scene {
     // パイプ口（頭）
     this.add.image(x + pipeW / 2, baseY - bodyH - TS / 2 - 2, 'tile_pipe_head').setDepth(1)
 
-    // 物理ボディ
+    // 物理ボディ：パイプ全高で正確なサイズを設定
     const totalH = heightTiles * TS
-    const body = this.platforms.create(x + pipeW / 2, baseY - totalH / 2, 'tile_pipe_body')
-    body.setVisible(false).setDisplaySize(pipeW, totalH).refreshBody()
+    const img = this.physics.add.staticImage(x + pipeW / 2, baseY - totalH / 2, 'tile_pipe_body')
+    img.setVisible(false)
+    img.setDisplaySize(pipeW, totalH)
+    img.body.setSize(pipeW, totalH)
+    img.refreshBody()
+    this.platforms.add(img)
   }
 
   _buildGoal() {
