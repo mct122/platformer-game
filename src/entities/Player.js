@@ -13,9 +13,18 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // キャラクター固有ステータス
     const s = CHARACTERS[charIdx]?.stats ?? CHARACTERS[0].stats
 
-    // 物理設定
-    this.body.setSize(PLAYER_SIZE - 6, PLAYER_SIZE - 4)
-    this.body.setMaxVelocityX(s.speed)  // キャラごとの速度上限
+    // 表示サイズ（ポートレート表示）
+    this.DISP_W = 90   // 表示幅
+    this.DISP_H = 200  // 表示高さ（元画像の縦長に合わせる）
+    this.setDisplaySize(this.DISP_W, this.DISP_H)
+
+    // 物理ボディ（表示より小さく・足元に寄せる）
+    const bodyW = 58
+    const bodyH = 90
+    this.body.setSize(bodyW, bodyH)
+    // オフセット: 横中央・縦は下半分（足元）に寄せる
+    this.body.setOffset((this.DISP_W - bodyW) / 2, this.DISP_H - bodyH - 10)
+    this.body.setMaxVelocityX(s.speed)
     this.setDepth(10)
 
     // 移動パラメータ
@@ -183,7 +192,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.powerState === 'big') return
     this.powerState = 'big'
     this.setTexture(`player_big_${this.charIdx}`)
-    this.body.setSize(PLAYER_SIZE - 6 + 12, PLAYER_SIZE - 4 + 12)
+    const bigW = 110, bigH = 240
+    this.setDisplaySize(bigW, bigH)
+    const bodyW = 68, bodyH = 110
+    this.body.setSize(bodyW, bodyH)
+    this.body.setOffset((bigW - bodyW) / 2, bigH - bodyH - 10)
     audio.play('powerup')
     // パワーアップのスケールポップ
     this.scene.tweens.add({
@@ -202,7 +215,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.powerState === 'big') {
       this.powerState = 'small'
       this.setTexture(`player_small_${this.charIdx}`)
-      this.body.setSize(PLAYER_SIZE - 6, PLAYER_SIZE - 4)
+      const smallW = this.DISP_W, smallH = this.DISP_H
+      this.setDisplaySize(smallW, smallH)
+      const bodyW = 58, bodyH = 90
+      this.body.setSize(bodyW, bodyH)
+      this.body.setOffset((smallW - bodyW) / 2, smallH - bodyH - 10)
       this.isInvulnerable = true
       this._invTimer = 2.0
       audio.play('damage')

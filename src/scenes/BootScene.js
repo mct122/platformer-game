@@ -67,11 +67,12 @@ export class BootScene extends Phaser.Scene {
     this._makeHillTexture()
     this._makeParticleTextures()
 
-    // 各キャラの円形テクスチャを事前生成（選択画面用・プレイヤー用）
+    // キャラクターのポートレートテクスチャを生成
+    // 上半身フォーカス（顔〜胸元）をアバターとして切り出す
     CHARACTERS.forEach((c, i) => {
-      this._makeCircleTex(`avatar_${i}`, `char_normal_${i}`, 60)
-      this._makeCircleTex(`player_small_${i}`, `char_normal_${i}`, 44)
-      this._makeCircleTex(`player_big_${i}`, `char_super_${i}`, 56)
+      this._makePortraitTex(`avatar_${i}`, `char_normal_${i}`, 160, 220)
+      this._makePortraitTex(`player_small_${i}`, `char_normal_${i}`, 90, 200)
+      this._makePortraitTex(`player_big_${i}`, `char_super_${i}`, 110, 240)
     })
     this.scene.start('TitleScene')
   }
@@ -228,19 +229,27 @@ export class BootScene extends Phaser.Scene {
   }
 
   /** 写真を円形にクリップしたテクスチャを生成 */
-  _makeCircleTex(key, srcKey, size) {
-    const rt = this.add.renderTexture(0, 0, size, size).setVisible(false)
-    const tmp = this.add.image(size / 2, size / 2, srcKey)
-      .setDisplaySize(size, size)
+  /** ポートレートテクスチャを生成（上部を優先してクロップ） */
+  _makePortraitTex(key, srcKey, w, h) {
+    const rt = this.add.renderTexture(0, 0, w, h).setVisible(false)
+
+    // 元画像のアスペクト比を維持して幅に合わせ、上からクロップ
+    const srcTex = this.textures.get(srcKey).getSourceImage()
+    const srcAspect = srcTex.width / srcTex.height
+    const scaledH = Math.round(w / srcAspect)
+
+    const tmp = this.add.image(w / 2, 0, srcKey)
+      .setDisplaySize(w, scaledH)
+      .setOrigin(0.5, 0)
       .setVisible(false)
-    const mask = this.make.graphics({ add: false })
-    mask.fillStyle(0xffffff)
-    mask.fillCircle(size / 2, size / 2, size / 2)
-    tmp.setMask(mask.createGeometryMask())
     rt.draw(tmp, 0, 0)
     rt.saveTexture(key)
     tmp.destroy()
-    mask.destroy()
     rt.destroy()
+  }
+
+  /** 後方互換用（削除予定） */
+  _makeCircleTex(key, srcKey, size) {
+    this._makePortraitTex(key, srcKey, size, size)
   }
 }
