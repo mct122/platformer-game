@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/platformer-game/sw.js', { scope: '/platformer-game/' })})}
