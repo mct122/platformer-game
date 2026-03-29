@@ -7,7 +7,7 @@ export class QuestionBlock extends Phaser.Physics.Arcade.Image {
     scene.physics.add.existing(this, true) // static
     this.setDisplaySize(32, 32)
     this.content = content
-    this.active = true
+    this._hasContent = true
     this._originY = y
     this._draw()
   }
@@ -15,10 +15,10 @@ export class QuestionBlock extends Phaser.Physics.Arcade.Image {
   _draw() {
     // Graphics でブロックを描画してテクスチャに焼く
     // （既にテクスチャがあれば再利用）
-    const key = this.active ? 'qblock_active' : 'qblock_used'
+    const key = this._hasContent ? 'qblock_active' : 'qblock_used'
     if (!this.scene.textures.exists(key)) {
       const g = this.scene.make.graphics({ add: false })
-      if (this.active) {
+      if (this._hasContent) {
         g.fillStyle(0xffd700).fillRect(0, 0, 32, 32)
         g.fillStyle(0x000000)
         g.fillRect(0, 0, 32, 2).fillRect(0, 30, 32, 2)
@@ -40,12 +40,12 @@ export class QuestionBlock extends Phaser.Physics.Arcade.Image {
   }
 
   hitFromBelow(player) {
-    if (!this.active) {
+    if (!this._hasContent) {
       // バンプアニメのみ
       this._bump()
       return
     }
-    this.active = false
+    this._hasContent = false
     this._draw()
     this._bump()
     audio.play('block')
