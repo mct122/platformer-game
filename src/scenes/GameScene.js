@@ -261,14 +261,13 @@ export class GameScene extends Phaser.Scene {
     // 下の2行：土タイル
     this.add.tileSprite(sx, GY + TS, w, TS * 2, 'tile_soil').setOrigin(0, 0)
 
-    // 物理ボディ：staticImage で正確なサイズを設定する
-    // center Y = GY + TS*3/2 → body.top = GY（視覚と一致）
-    const img = this.physics.add.staticImage(sx + w / 2, GY + TS * 3 / 2, 'tile_ground')
+    // 物理ボディ：group.create → setDisplaySize → refreshBody
+    // setSize() を使わず refreshBody() に displaySize からサイズを導出させる
+    // （setSize のR-tree不整合問題を回避）
+    const img = this.ground.create(sx + w / 2, GY + TS * 3 / 2, 'tile_ground')
     img.setVisible(false)
     img.setDisplaySize(w, TS * 3)
-    img.body.setSize(w, TS * 3)  // テクスチャサイズ(32×32)ではなく実寸を設定
-    img.refreshBody()             // スプライト位置を元にボディを再配置
-    this.ground.add(img)
+    img.refreshBody()
   }
 
   /** 足場をレンガタイルで描画 */
@@ -276,12 +275,10 @@ export class GameScene extends Phaser.Scene {
     const w = tiles * TS
     this.add.tileSprite(x, y, w, TS, 'tile_brick').setOrigin(0, 0)
 
-    const img = this.physics.add.staticImage(x + w / 2, y + TS / 2, 'tile_brick')
+    const img = this.platforms.create(x + w / 2, y + TS / 2, 'tile_brick')
     img.setVisible(false)
     img.setDisplaySize(w, TS)
-    img.body.setSize(w, TS)
     img.refreshBody()
-    this.platforms.add(img)
   }
 
   /** パイプを配置（ビジュアル + 物理ボディ） */
@@ -298,14 +295,12 @@ export class GameScene extends Phaser.Scene {
     // パイプ口（頭）
     this.add.image(x + pipeW / 2, baseY - bodyH - TS / 2 - 2, 'tile_pipe_head').setDepth(1)
 
-    // 物理ボディ：パイプ全高で正確なサイズを設定
+    // 物理ボディ：パイプ全高
     const totalH = heightTiles * TS
-    const img = this.physics.add.staticImage(x + pipeW / 2, baseY - totalH / 2, 'tile_pipe_body')
+    const img = this.platforms.create(x + pipeW / 2, baseY - totalH / 2, 'tile_pipe_body')
     img.setVisible(false)
     img.setDisplaySize(pipeW, totalH)
-    img.body.setSize(pipeW, totalH)
     img.refreshBody()
-    this.platforms.add(img)
   }
 
   _buildGoal() {
