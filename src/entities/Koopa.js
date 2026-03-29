@@ -12,6 +12,7 @@ export class Koopa extends Phaser.Physics.Arcade.Sprite {
     this.state = 'walking'
     this.speed = 45
     this.isDead = false
+    this._kickCooldown = 0
     this.body.setVelocityX(-this.speed)
 
     // 歩きアニメ
@@ -27,6 +28,7 @@ export class Koopa extends Phaser.Physics.Arcade.Sprite {
 
   update(dt) {
     if (this.isDead) { this.destroy(); return }
+    if (this._kickCooldown > 0) this._kickCooldown -= dt
     if (this.state === 'walking') {
       if (this.body.blocked.left)  this.body.setVelocityX(this.speed)
       if (this.body.blocked.right) this.body.setVelocityX(-this.speed)
@@ -64,13 +66,14 @@ export class Koopa extends Phaser.Physics.Arcade.Sprite {
   touchPlayer(player) {
     if (this.state === 'shell_still') {
       this.kickShell(player)
-    } else {
+    } else if (this._kickCooldown <= 0) {
       player.takeDamage()
     }
   }
 
   kickShell(player) {
     this.state = 'shell_moving'
+    this._kickCooldown = 0.3
     const dir = player.x < this.x ? 1 : -1
     this.body.setVelocityX(dir * 450)
     audio.play('shell')
