@@ -22,6 +22,7 @@ export class GameScene extends Phaser.Scene {
     this._comboCount = 0   // 連続踏みコンボ
     this._timer = 300      // カウントダウンタイマー（秒）
     this._timerLow = false // 30秒警告フラグ
+    this._lastDisplayedTime = 300 // HUD更新用: 前回表示した秒数
 
     // 背景グラデーション
     this._buildBackground()
@@ -403,6 +404,14 @@ export class GameScene extends Phaser.Scene {
     // 残り30秒で警告フラグ（UISceneが赤点滅）
     if (!this._timerLow && this._timer <= 30) {
       this._timerLow = true
+      this._emitHUD()
+    }
+
+    // タイマー表示の秒数が変わった場合のみHUD更新
+    const displayTime = Math.ceil(this._timer)
+    if (displayTime !== this._lastDisplayedTime) {
+      this._lastDisplayedTime = displayTime
+      this._emitHUD()
     }
 
     // 穴落下判定
@@ -414,9 +423,6 @@ export class GameScene extends Phaser.Scene {
     if (!this._dead && this.player.x > this.goalX - 30) {
       this._onClear()
     }
-
-    // HUD 更新
-    this._emitHUD()
   }
 
   // =====================================================
