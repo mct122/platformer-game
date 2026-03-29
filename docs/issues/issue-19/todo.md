@@ -1,12 +1,12 @@
 # Issue #19 ToDo
 
 ## Phase 1: 敵同士のoverlap追加
-- [ ] GameScene に enemies 同士の overlap コライダーを追加
-- [ ] `_onEnemyEnemyOverlap()` コールバックを実装
+- [x] GameScene に enemies 同士の overlap コライダーを追加
+- [x] `_onEnemyEnemyOverlap()` コールバックを実装
 
 ## Phase 2: killByShell メソッド追加
-- [ ] Goomba に `killByShell()` を追加（吹き飛び演出）
-- [ ] Koopa に `killByShell()` を追加（吹き飛び演出）
-- [ ] スコア加算処理
-- [ ] VFX演出
-- [ ] テスト実行
+- [x] Goomba に `killByShell()` を追加（吹き飛び演出）
+- [x] Koopa に `killByShell()` を追加（吹き飛び演出）
+- [x] スコア加算処理
+- [x] VFX演出
+- [x] テスト実行

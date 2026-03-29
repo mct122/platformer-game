@@ -50,6 +50,8 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.mushrooms, (p, m) => m.collect(p), null, this)
     // プレイヤー vs ワールドコイン
     this.physics.add.overlap(this.player, this.coinGroup, (_p, c) => c.collect(), null, this)
+    // 敵 vs 敵（移動甲羅が他の敵を倒す）
+    this.physics.add.overlap(this.enemies, this.enemies, this._onEnemyEnemyOverlap, null, this)
 
     // --- カメラ ---
     this.cameras.main.setBounds(0, 0, MAP_WIDTH, GH)
@@ -381,6 +383,14 @@ export class GameScene extends Phaser.Scene {
     if (player.body.velocity.y < 0 && player.body.top < block.body.bottom) {
       block.hitFromBelow(player)
     }
+  }
+
+  _onEnemyEnemyOverlap(a, b) {
+    if (a === b) return
+    const aIsShell = a.state === 'shell_moving'
+    const bIsShell = b.state === 'shell_moving'
+    if (aIsShell && !b.isDead) b.killByShell(a)
+    if (bIsShell && !a.isDead) a.killByShell(b)
   }
 
   // =====================================================

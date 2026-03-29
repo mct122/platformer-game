@@ -79,4 +79,18 @@ export class Koopa extends Phaser.Physics.Arcade.Sprite {
     audio.play('shell')
     this.scene.events.emit('addScore', 400)
   }
+
+  killByShell(shell) {
+    if (this.isDead) return
+    this.isDead = true
+    this._walkTween?.stop()
+    this.body.checkCollision.none = true
+    const dir = shell.x < this.x ? 1 : -1
+    this.body.setVelocity(dir * 150, -300)
+    this.body.setGravityY(-2600 + 1200)
+    this.setFlipY(true)
+    audio.play('stomp')
+    this.scene.events.emit('addScore', 100)
+    this.scene.events.emit('vfx_stomp', this.x, this.y, 0x22dd44)
+  }
 }
