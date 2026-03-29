@@ -103,6 +103,23 @@ export class UIScene extends Phaser.Scene {
     }
   }
 
+  /** GameScene リスタート時に HUD イベントを再接続し、状態をリセットする */
+  _reconnectGame(gameScene) {
+    // 旧リスナーをクリーンアップ
+    if (this._gameScene) {
+      this._gameScene.events.off('updateHUD', null, this)
+    }
+    // 新しい GameScene に再接続
+    this._gameScene = gameScene
+    gameScene.events.on('updateHUD', d => this._updateHUD(d), this)
+    // タイマー点滅状態をリセット
+    this._timerFlashing = false
+    if (this.timeText) {
+      this.tweens.killTweensOf(this.timeText)
+      this.timeText.setColor('#ffffff').setAlpha(1)
+    }
+  }
+
   _updateHUD({ score, coins, lives, timeLeft, timerLow }) {
     // スコア
     this.scoreText.setText(String(score).padStart(6, '0'))

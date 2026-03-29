@@ -81,6 +81,12 @@ export class GameScene extends Phaser.Scene {
     // BGM
     // audio.startBGM()
 
+    // UIScene が既にアクティブな場合（リスタート時）、HUDイベントを再接続
+    const ui = this.scene.get('UIScene')
+    if (ui && this.scene.isActive('UIScene')) {
+      ui._reconnectGame(this)
+    }
+
     // HUD 初期化
     this._emitHUD()
 
