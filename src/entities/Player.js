@@ -44,6 +44,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this._buffer = 0
     this._invTimer = 0
     this._blinkTimer = 0
+    this._prevJumpDown = false
 
     // 状態
     this.isGrounded = false
@@ -152,9 +153,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   _applyJump() {
     const body = this.body
 
-    if (Phaser.Input.Keyboard.JustDown(this.keys.jump) ||
-        Phaser.Input.Keyboard.JustDown(this.keys.jumpB) ||
-        this._jumpJustPressed) {
+    // isDown ベースの手動エッジ検出（JustDown の同時押し問題を回避）
+    const jumpDown = this.wantsJump
+    const justPressed = jumpDown && !this._prevJumpDown
+    this._prevJumpDown = jumpDown
+
+    if (justPressed || this._jumpJustPressed) {
       this._buffer = this.JUMP_BUFFER
       this._jumpJustPressed = false
     }
